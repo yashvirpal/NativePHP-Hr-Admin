@@ -1,0 +1,4 @@
+# Entry point so `docker compose ...` works from the repo root.
+# The actual definitions live in docker-infra/.
+include:
+  - docker-infra/compose.yaml

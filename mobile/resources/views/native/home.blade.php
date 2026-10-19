@@ -1,0 +1,83 @@
+<native:column class="w-full h-full bg-theme-background">
+    <native:refreshable @refresh="refresh" class="w-full flex-1">
+        <native:column class="w-full p-4 gap-4">
+            @if ($error !== '')
+                <native:text class="text-sm text-theme-destructive">{{ $error }}</native:text>
+            @endif
+
+            @if ($loaded)
+                <native:column class="w-full gap-1">
+                    <native:text class="text-2xl font-bold text-theme-on-surface">Hello, {{ explode(' ', $name)[0] }}</native:text>
+                    @if ($subtitle !== '')
+                        <native:text class="text-sm text-theme-on-surface-variant">{{ $subtitle }}</native:text>
+                    @endif
+                </native:column>
+
+                {{-- Today / punch card --}}
+                <native:column class="w-full p-4 gap-3 rounded-2xl bg-theme-surface-variant/40">
+                    <native:text class="text-sm text-theme-on-surface-variant">Today</native:text>
+                    <native:text class="text-xl font-bold text-theme-on-surface">{{ $todayLine }}</native:text>
+                    @if ($todayStatus !== '')
+                        <native:text class="text-sm text-theme-primary">{{ $todayStatus }}</native:text>
+                    @endif
+
+                    @if ($punchedIn)
+                        <native:button label="Punch out" variant="destructive" size="lg" :loading="$busy" @press="punchOut" />
+                    @else
+                        <native:button label="Punch in" variant="primary" size="lg" :loading="$busy" @press="punchIn" />
+                    @endif
+                </native:column>
+
+                {{-- This month --}}
+                <native:row class="w-full gap-3">
+                    <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
+                        <native:text class="text-2xl font-bold text-theme-on-surface">{{ $month['present'] }}</native:text>
+                        <native:text class="text-xs text-theme-on-surface-variant">Days present</native:text>
+                    </native:column>
+                    <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
+                        <native:text class="text-2xl font-bold text-theme-on-surface">{{ $month['late'] }}</native:text>
+                        <native:text class="text-xs text-theme-on-surface-variant">Late</native:text>
+                    </native:column>
+                    <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
+                        <native:text class="text-lg font-bold text-theme-on-surface">{{ $month['worked'] }}</native:text>
+                        <native:text class="text-xs text-theme-on-surface-variant">Worked</native:text>
+                    </native:column>
+                </native:row>
+
+                @if ($pending['leave'] > 0 || $pending['overtime'] > 0)
+                    <native:text class="text-sm text-theme-on-surface-variant">
+                        Waiting for approval: {{ $pending['leave'] }} leave, {{ $pending['overtime'] }} overtime
+                    </native:text>
+                @endif
+
+                {{-- Leave balance --}}
+                @if (count($balances) > 0)
+                    <native:text class="text-lg font-bold text-theme-on-surface">Leave balance</native:text>
+                    <native:column class="w-full gap-2">
+                        @foreach ($balances as $b)
+                            <native:row class="w-full items-center justify-between">
+                                <native:text class="text-base text-theme-on-surface">{{ $b['name'] }}</native:text>
+                                <native:text class="text-base font-bold text-theme-on-surface">{{ $b['remaining'] }} / {{ $b['allocated'] }}</native:text>
+                            </native:row>
+                        @endforeach
+                    </native:column>
+                @endif
+
+                {{-- Holidays --}}
+                @if (count($holidays) > 0)
+                    <native:text class="text-lg font-bold text-theme-on-surface">Upcoming holidays</native:text>
+                    <native:column class="w-full gap-2">
+                        @foreach ($holidays as $h)
+                            <native:row class="w-full items-center justify-between">
+                                <native:text class="text-base text-theme-on-surface">{{ $h['name'] }}{{ $h['optional'] ? ' (optional)' : '' }}</native:text>
+                                <native:text class="text-sm text-theme-on-surface-variant">{{ $h['date'] }}</native:text>
+                            </native:row>
+                        @endforeach
+                    </native:column>
+                @endif
+            @elseif ($error === '')
+                <native:text class="text-base text-theme-on-surface-variant">Loading...</native:text>
+            @endif
+        </native:column>
+    </native:refreshable>
+</native:column>

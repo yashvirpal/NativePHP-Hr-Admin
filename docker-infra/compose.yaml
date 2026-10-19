@@ -1,0 +1,87 @@
+name: hr-system
+
+x-php: &php
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: hr-system-php
+  environment:
+    PHP_CLI_SERVER_WORKERS: 4   # php artisan serve handles requests in parallel
+
+services:
+  backend:
+    <<: *php
+    working_dir: /app
+    volumes:
+      - ../backend:/app
+      - backend_vendor:/app/vendor   # vendor/ on the VM disk: the Windows share is ~10x slower
+    ports:
+      - "8000:8000"
+    command: php artisan serve --no-reload --host=0.0.0.0 --port=8000
+
+  mobile:
+    <<: *php
+    working_dir: /app
+    volumes:
+      - ../mobile:/app
+      - mobile_vendor:/app/vendor
+    ports:
+      - "8001:8001"
+    command: php artisan serve --no-reload --host=0.0.0.0 --port=8001
+
+  # NativePHP Jump: scan the QR code with the Jump app on your phone.
+  # Run: docker compose run --rm --service-ports jump
+  # JUMP_IP must be this PC's LAN IP (the phone must be on the same network).
+  jump:
+    <<: *php
+    profiles: [jump]
+    working_dir: /app
+    volumes:
+      - ../mobile:/app
+      - mobile_vendor:/app/vendor
+    ports:
+      - "3000:3000"   # Jump HTTP / QR page
+      - "3001:3001"   # WebSocket bridge
+      - "3003:3003"   # Vite HMR proxy
+    environment:
+      JUMP_IP: ${JUMP_IP:-172.16.14.106}
+    command: sh -c "php artisan native:jump --ip=$$JUMP_IP --no-mdns"
+    tty: true
+    stdin_open: true
+
+  # Public HTTPS URL for the phone app (installed builds). Start with:
+  #   docker compose --profile tunnel up -d api-gateway tunnel
+  #   docker compose --profile tunnel logs tunnel     (look for https://<random>.trycloudflare.com)
+  # The gateway forwards ONLY /api/v1/* - the admin panel and web portal are not exposed.
+  api-gateway:
+    image: nginx:alpine
+    profiles: [tunnel]
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: [tunnel]
+    command: tunnel --no-autoupdate --url http://api-gateway:80
+    depends_on:
+      - api-gateway
+
+  # Production-like database; enable with: docker compose --profile pgsql up
+  postgres:
+    image: postgres:17
+    profiles: [pgsql]
+    environment:
+      POSTGRES_DB: hr_attendance
+      POSTGRES_USER: hr_app
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+  backend_vendor:
+  mobile_vendor:
