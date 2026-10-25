@@ -4,10 +4,10 @@
 <div class="page-head"><div><h1>Overtime</h1><p class="sub">Request approval for extra hours you worked</p></div></div>
 
 <div class="card pad">
-    <div class="row" style="justify-content:space-between;align-items:flex-start;gap:24px">
+    <div class="row" style="align-items:flex-start;column-gap:48px;row-gap:18px">
         <div>
             <div class="muted">Your hourly overtime rate</div>
-            <div style="font-size:26px;font-weight:700">
+            <div style="font-size:26px;font-weight:700;margin-top:4px">
                 {{ $rate['rate'] !== null ? number_format((float) $rate['rate'], 2) : 'Not set' }}
                 @if ($rate['rate'] !== null) <span class="muted" style="font-size:14px;font-weight:500">per hour</span> @endif
             </div>

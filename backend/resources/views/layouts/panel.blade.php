@@ -51,7 +51,9 @@
         .sub { color:var(--muted); margin:2px 0 0; }
 
         .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:18px; }
-        .card > .pad, form.card { padding:18px; }
+        /* .pad is used both nested (<div class="card"><div class="pad">) and combined on one element
+           (<div class="card pad">) - match both, or the combined form silently gets zero padding. */
+        .card > .pad, .card.pad, form.card { padding:18px; }
         .card h2 { font-size:15px; margin:0; padding:14px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
         .table-wrap { overflow-x:auto; }
         table { width:100%; border-collapse:collapse; }
@@ -59,7 +61,8 @@
         th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; background:var(--hover); }
         tbody tr:hover { background:var(--hover); } tbody tr:last-child td { border-bottom:0; }
         td.empty { text-align:center; color:var(--muted); padding:36px 16px; }
-        td.actions { text-align:right; }
+        /* flex (not text-align) so multiple buttons/forms get a real gap instead of touching each other */
+        td.actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; }
 
         .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:18px; }
         .stat { padding:16px 18px; display:block; color:inherit; margin:0; }
@@ -124,10 +127,15 @@
 
         @media (max-width: 820px) {
             .shell { grid-template-columns:1fr; }
-            aside { position:static; height:auto; padding:10px; flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; }
-            aside .logo { padding:4px 8px; } aside .nav-label, .me small, .me b { display:none; }
-            aside nav { display:flex; flex-wrap:wrap; gap:2px; flex:1; } aside nav a { padding:7px 9px; }
+            /* horizontal padding matches main's 16px below it, so the top bar isn't tighter than the content under it */
+            aside { position:static; height:auto; padding:10px 16px; flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; }
+            aside .logo { padding:4px 8px 4px 0; } aside .nav-label, .me small, .me b { display:none; }
+            aside nav { display:flex; flex-wrap:wrap; gap:4px; flex:1; }
+            /* icon-only on mobile, but kept to a real touch target (~44px) instead of shrinking to the icon's size */
+            aside nav a { padding:11px; min-width:44px; min-height:44px; justify-content:center; }
             aside nav a span.t { display:none; } .me { margin:0; border:0; padding:0; }
+            /* buttons get a mouse from a trackpad on desktop but a fingertip here, so bump the small ones back up to a tappable size */
+            button.sm, .btn.sm { min-height:36px; padding:7px 12px; }
             main { padding:18px 16px 40px; }
         }
     </style>
@@ -203,7 +211,8 @@
                 @foreach ($nav as $group => $items)
                     <div class="nav-label">{{ $group }}</div>
                     @foreach ($items as [$route, $label, $icon, $pattern, $count])
-                        <a href="{{ route($route) }}" @class(['active' => request()->routeIs($pattern)])>
+                        {{-- aria-label keeps an accessible name once .t is display:none below the 820px breakpoint --}}
+                        <a href="{{ route($route) }}" aria-label="{{ $label }}" @class(['active' => request()->routeIs($pattern)])>
                             <svg viewBox="0 0 24 24">{!! $icons[$icon] !!}</svg>
                             <span class="t">{{ $label }}</span>
                             @if ($count) <span class="count">{{ $count }}</span> @endif

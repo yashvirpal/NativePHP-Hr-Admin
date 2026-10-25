@@ -12,15 +12,15 @@
     </div>
 </div>
 
-<div class="card pad" style="display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+<div class="card pad" style="display:flex;column-gap:48px;row-gap:18px;align-items:center;flex-wrap:wrap">
     <div>
         <div class="muted">Today</div>
-        <div style="font-size:22px;font-weight:700">
+        <div style="font-size:22px;font-weight:700;margin-top:4px">
             @if ($is_punched_in) Punched in since {{ $today->first_in_at->format('H:i') }}
             @elseif ($today?->last_out_at) Done for the day &middot; out at {{ $today->last_out_at->format('H:i') }}
             @else Not punched in @endif
         </div>
-        @if ($today) <span class="badge {{ $today->status }}">{{ str_replace('_', ' ', $today->status) }}</span> @endif
+        @if ($today) <span class="badge {{ $today->status }}" style="margin-top:8px">{{ str_replace('_', ' ', $today->status) }}</span> @endif
     </div>
     <div class="row">
         <form method="post" action="{{ route('employee.punch-in') }}">@csrf

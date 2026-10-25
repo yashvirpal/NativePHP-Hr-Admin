@@ -11,7 +11,7 @@ All Docker config shared by both projects lives in `docker-infra/`.
 
 ```powershell
 cd docker-infra
-docker compose up --build              # backend :8000, mobile :8001
+docker compose up --build              # backend :8002 (remapped from :8000, which was taken locally), mobile :8001
 docker compose --profile pgsql up      # also start PostgreSQL
 
 # any artisan / composer command
@@ -47,8 +47,8 @@ Switch to PostgreSQL by editing the `DB_*` values in `backend/.env`, then
 
 Backend is built: see [backend/API.md](backend/API.md) for accounts, endpoints and the two web panels.
 
-- Employees: `http://localhost:8000/employee` (own data on the web) and the mobile API `/api/v1`
-- Admins (super admin / manager): `http://localhost:8000/admin`
+- Employees: `http://localhost:8002/employee` (own data on the web) and the mobile API `/api/v1`
+- Admins (super admin / manager): `http://localhost:8002/admin`
 - Dev logins (password `password`): `alice@example.com` (employee), `manager@example.com` / `admin@example.com` (admins)
 
 ## Mobile app (`mobile/`)
