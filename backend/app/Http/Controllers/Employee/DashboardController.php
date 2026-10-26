@@ -9,6 +9,10 @@ class DashboardController extends PortalController
 {
     public function __invoke(Request $request): View
     {
-        return view('employee.dashboard', $this->portal->dashboard($this->employee($request)));
+        $employee = $this->employee($request);
+        $data = $this->portal->dashboard($employee);
+        $data['totals'] = $this->portal->attendanceTotals($employee)['month'];
+
+        return view('employee.dashboard', $data);
     }
 }

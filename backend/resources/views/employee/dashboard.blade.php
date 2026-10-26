@@ -1,7 +1,6 @@
 @extends('layouts.panel')
 @section('title', 'Dashboard')
 @section('content')
-@php $h = intdiv($month['worked_minutes'], 60); $m = $month['worked_minutes'] % 60; @endphp
 <div class="page-head">
     <div>
         <h1>Hello, {{ explode(' ', $employee->user->name)[0] }}</h1>
@@ -12,28 +11,25 @@
     </div>
 </div>
 
-<div class="card pad" style="display:flex;column-gap:48px;row-gap:18px;align-items:center;flex-wrap:wrap">
-    <div>
-        <div class="muted">Today</div>
-        <div style="font-size:22px;font-weight:700;margin-top:4px">
-            @if ($is_punched_in) Punched in since {{ $today->first_in_at->format('H:i') }}
-            @elseif ($today?->last_out_at) Done for the day &middot; out at {{ $today->last_out_at->format('H:i') }}
-            @else Not punched in @endif
-        </div>
-        @if ($today) <span class="badge {{ $today->status }}" style="margin-top:8px">{{ str_replace('_', ' ', $today->status) }}</span> @endif
+<div class="card pad">
+    <div class="muted">Today</div>
+    <div style="font-size:22px;font-weight:700;margin-top:4px">
+        @if ($is_punched_in) Punched in since {{ $today->first_in_at->format('H:i') }}
+        @elseif ($today?->last_out_at) Done for the day &middot; out at {{ $today->last_out_at->format('H:i') }}
+        @else Not punched in @endif
     </div>
-    <div class="row">
-        <form method="post" action="{{ route('employee.punch-in') }}">@csrf
-            <button class="ok" @disabled($is_punched_in)>Punch in</button></form>
-        <form method="post" action="{{ route('employee.punch-out') }}">@csrf
-            <button class="bad" @disabled(! $is_punched_in)>Punch out</button></form>
-    </div>
+    @if ($today) <span class="badge {{ $today->status }}" style="margin-top:8px">{{ str_replace('_', ' ', $today->status) }}</span> @endif
 </div>
 
 <div class="grid">
     <div class="card stat ok"><span>Days present (this month)</span><b>{{ $month['days_present'] }}</b></div>
     <div class="card stat warn"><span>Late arrivals</span><b>{{ $month['days_late'] }}</b></div>
-    <div class="card stat accent"><span>Hours worked</span><b>{{ $h }}h {{ $m }}m</b></div>
+    <div class="card stat accent"><span>Regular (this month)</span><b>{{ intdiv($totals['regular_minutes'], 60) }}h {{ $totals['regular_minutes'] % 60 }}m</b></div>
+    <div class="card stat accent">
+        <span>Overtime (this month)</span>
+        <b>{{ intdiv($totals['overtime_minutes'], 60) }}h {{ $totals['overtime_minutes'] % 60 }}m</b>
+        @if ($totals['overtime_amount'] !== null) <div class="muted">{{ $totals['overtime_amount'] }}</div> @endif
+    </div>
 </div>
 
 <div class="card">

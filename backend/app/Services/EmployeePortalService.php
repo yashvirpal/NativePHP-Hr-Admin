@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\ManualRegularEntry;
 use App\Models\OvertimeRequest;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -75,9 +76,181 @@ class EmployeePortalService
         return $this->attendance->punchOut($employee, $meta);
     }
 
+    /** Attendance records for the month, each annotated with that day's overtime_minutes/overtime_amount. */
     public function attendanceHistory(Employee $employee, ?string $month = null): LengthAwarePaginator
     {
-        return $this->attendance->history($employee, $month);
+        $page = $this->attendance->history($employee, $month);
+        $records = $page->getCollection();
+
+        $dates = $records->map(fn (AttendanceRecord $r) => $r->work_date->toDateString());
+
+        $overtimeByDate = OvertimeRequest::where('employee_id', $employee->id)
+            ->whereIn('work_date', $dates)
+            ->selectRaw('work_date, sum(minutes) as minutes, sum(amount) as amount')
+            ->groupBy('work_date')
+            ->get()
+            ->keyBy(fn (OvertimeRequest $r) => $r->work_date->toDateString());
+
+        $records->each(function (AttendanceRecord $record) use ($overtimeByDate) {
+            $overtime = $overtimeByDate->get($record->work_date->toDateString());
+            $record->overtime_minutes = (int) ($overtime->minutes ?? 0);
+            $record->overtime_amount = $overtime->amount ?? null;
+        });
+
+        return $page;
+    }
+
+    /** Independent of punches — see AttendanceService::logManualRegular(). */
+    public function logManualRegularHours(Employee $employee, string $workDate, int $minutes, ?string $reason = null): ManualRegularEntry
+    {
+        return $this->attendance->logManualRegular($employee, $workDate, $minutes, $reason);
+    }
+
+    /**
+     * Every day of the given month for the calendar view, each classified into exactly one
+     * status: 'leave' (an approved leave request covers it — carries the leave type name),
+     * the punch status ('present'/'late'/'half_day'/'absent') when a punch exists, 'logged'
+     * when regular/overtime hours were declared manually with no punch, 'absent' when the day
+     * is in the past with nothing at all recorded, or '' for today/future (not yet concluded).
+     *
+     * @return list<array{work_date:string, status:string, leave_type:?string, first_in_at:?string,
+     *     last_out_at:?string, worked_minutes:int, regular_minutes:int, overtime_minutes:int, overtime_amount:?string}>
+     */
+    public function attendanceCalendar(Employee $employee, string $month): array
+    {
+        $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+        $today = Carbon::today();
+
+        $recordsByDate = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn (AttendanceRecord $r) => $r->work_date->toDateString());
+
+        $manualByDate = ManualRegularEntry::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn (ManualRegularEntry $r) => $r->work_date->toDateString());
+
+        $overtimeByDate = OvertimeRequest::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn (OvertimeRequest $r) => $r->work_date->toDateString());
+
+        $leaveRequests = LeaveRequest::with('leaveType')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $end)
+            ->whereDate('end_date', '>=', $start)
+            ->get();
+
+        $days = [];
+
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $date = $d->toDateString();
+            $record = $recordsByDate->get($date);
+            $overtime = $overtimeByDate->get($date);
+            $leave = $leaveRequests->first(fn (LeaveRequest $l) => $l->start_date->lte($d) && $l->end_date->gte($d));
+
+            $worked = (int) ($record?->worked_minutes ?? 0);
+            $overtimeMinutes = (int) ($overtime?->minutes ?? 0);
+            $manualMinutes = (int) ($manualByDate->get($date)?->minutes ?? 0);
+            $regularMinutes = max(0, $worked - $overtimeMinutes) + $manualMinutes;
+
+            $status = match (true) {
+                $leave !== null => 'leave',
+                $record !== null => $record->status,
+                $regularMinutes > 0 || $overtimeMinutes > 0 => 'logged',
+                $d->lt($today) => 'absent',
+                default => '',
+            };
+
+            $days[] = [
+                'work_date' => $date,
+                'status' => $status,
+                'leave_type' => $leave?->leaveType?->name,
+                'first_in_at' => $record?->first_in_at?->toIso8601String(),
+                'last_out_at' => $record?->last_out_at?->toIso8601String(),
+                'worked_minutes' => $worked,
+                'regular_minutes' => $regularMinutes,
+                'overtime_minutes' => $overtimeMinutes,
+                'overtime_amount' => $overtime?->amount,
+            ];
+        }
+
+        return $days;
+    }
+
+    /**
+     * The employee's manual regular minutes and overtime minutes/amount for one specific day —
+     * what the "log hours" screen prefills when the employee taps that day again.
+     *
+     * @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string}
+     */
+    public function dayEntry(Employee $employee, string $workDate): array
+    {
+        $regular = $this->attendance->manualRegularFor($employee, $workDate);
+        $overtime = $this->overtime->requestFor($employee, $workDate);
+
+        return [
+            'regular_minutes' => $regular?->minutes ?? 0,
+            'overtime_minutes' => $overtime?->minutes ?? 0,
+            'overtime_amount' => $overtime?->amount,
+        ];
+    }
+
+    /**
+     * Regular/overtime minute totals for the given month and for its whole year, combining
+     * punch-derived regular minutes (worked_minutes - that day's overtime) with manually
+     * logged regular entries. Clamped per day before summing, never negative.
+     *
+     * @return array{month: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string},
+     *               year: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string}}
+     */
+    public function attendanceTotals(Employee $employee, ?string $month = null): array
+    {
+        $monthStart = $month !== null
+            ? Carbon::createFromFormat('Y-m', $month)->startOfMonth()
+            : Carbon::now()->startOfMonth();
+
+        return [
+            'month' => $this->totalsFor($employee, $monthStart->toDateString(), $monthStart->copy()->endOfMonth()->toDateString()),
+            'year' => $this->totalsFor($employee, $monthStart->copy()->startOfYear()->toDateString(), $monthStart->copy()->endOfYear()->toDateString()),
+        ];
+    }
+
+    /** @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string} */
+    private function totalsFor(Employee $employee, string $from, string $to): array
+    {
+        $workedByDate = AttendanceRecord::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$from, $to])
+            ->get(['work_date', 'worked_minutes'])
+            ->mapWithKeys(fn (AttendanceRecord $r) => [$r->work_date->toDateString() => (int) $r->worked_minutes]);
+
+        $overtimeByDate = OvertimeRequest::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$from, $to])
+            ->selectRaw('work_date, sum(minutes) as minutes, sum(amount) as amount')
+            ->groupBy('work_date')
+            ->get()
+            ->keyBy(fn (OvertimeRequest $r) => $r->work_date->toDateString());
+
+        $punchRegularMinutes = 0;
+        foreach ($workedByDate as $date => $worked) {
+            $punchRegularMinutes += max(0, $worked - (int) ($overtimeByDate->get($date)->minutes ?? 0));
+        }
+
+        $manualRegularMinutes = (int) ManualRegularEntry::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$from, $to])
+            ->sum('minutes');
+
+        $overtimeMinutes = (int) $overtimeByDate->sum('minutes');
+        $overtimeAmountSum = $overtimeByDate->sum('amount');
+
+        return [
+            'regular_minutes' => $punchRegularMinutes + $manualRegularMinutes,
+            'overtime_minutes' => $overtimeMinutes,
+            'overtime_amount' => $overtimeByDate->isNotEmpty() ? number_format((float) $overtimeAmountSum, 2, '.', '') : null,
+        ];
     }
 
     // ─── Leave ──────────────────────────────────────────────────────────────────

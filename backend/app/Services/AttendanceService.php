@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AttendancePunch;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
+use App\Models\ManualRegularEntry;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +90,24 @@ class AttendanceService
         }
 
         return $query->paginate(31);
+    }
+
+    /**
+     * Independent of punches — not reconciled with worked_minutes, purely a user-declared log.
+     * One entry per employee per day: logging the same day again updates it in place.
+     */
+    public function logManualRegular(Employee $employee, string $workDate, int $minutes, ?string $reason = null): ManualRegularEntry
+    {
+        return ManualRegularEntry::updateOrCreate(
+            ['employee_id' => $employee->id, 'work_date' => $workDate],
+            ['minutes' => $minutes, 'reason' => $reason],
+        );
+    }
+
+    /** The employee's manual regular entry for one day, or null if they haven't logged one. */
+    public function manualRegularFor(Employee $employee, string $workDate): ?ManualRegularEntry
+    {
+        return ManualRegularEntry::where('employee_id', $employee->id)->where('work_date', $workDate)->first();
     }
 
     private function addPunch(AttendanceRecord $record, string $type, CarbonInterface $at, array $meta): AttendancePunch

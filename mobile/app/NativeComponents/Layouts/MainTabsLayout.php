@@ -15,7 +15,7 @@ class MainTabsLayout extends NativeLayout
     private const TABS = [
         ['Home', '/home', 'home'],
         ['Attendance', '/attendance', 'schedule'],
-        ['Leave', '/leave', 'event'],
+        ['Leave', '/leave', 'calendar'],
         ['Overtime', '/overtime', 'bolt'],
         ['More', '/more', 'menu'],
     ];

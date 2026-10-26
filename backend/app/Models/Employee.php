@@ -75,4 +75,9 @@ class Employee extends Model
     {
         return $this->hasMany(OvertimeRequest::class);
     }
+
+    public function manualRegularEntries(): HasMany
+    {
+        return $this->hasMany(ManualRegularEntry::class);
+    }
 }

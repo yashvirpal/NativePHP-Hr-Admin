@@ -66,6 +66,19 @@ class EmployeePortalTest extends ApiTestCase
         $this->assertDatabaseHas('attendance_punches', ['source' => 'web', 'type' => 'in']);
     }
 
+    public function test_dashboard_has_no_punch_buttons_and_shows_this_months_regular_and_overtime(): void
+    {
+        $user = $this->makeUser();
+        $this->actingAs($user, 'web');
+        $this->put('/employee/overtime/rate', ['hourly_rate' => '200']);
+        $this->post('/employee/overtime', ['work_date' => '2026-11-02', 'minutes' => 60]); // 200.00
+
+        $response = $this->get('/employee')->assertOk();
+
+        $response->assertDontSee('Punch in')->assertDontSee('Punch out');
+        $response->assertSee('Overtime (this month)')->assertSee('1h 0m')->assertSee('200.00');
+    }
+
     public function test_double_punch_in_shows_an_error(): void
     {
         $this->actingAs($this->makeUser(), 'web');

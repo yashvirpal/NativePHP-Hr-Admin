@@ -10,13 +10,6 @@ class Login extends Screen
 
     public string $password = '';
 
-    public bool $showPassword = false;
-
-    public function toggleShowPassword(): void
-    {
-        $this->showPassword = ! $this->showPassword;
-    }
-
     public function forgotPassword(): void
     {
         $this->navigate('/forgot-password');

@@ -83,6 +83,40 @@ class HrApi
         return $this->send('GET', 'attendance', array_filter(['month' => $month]));
     }
 
+    /**
+     * Every day of the month for the calendar view, already classified (present/late/absent/
+     * leave/logged/unmarked) and combining punch, manual-entry, overtime and leave data.
+     *
+     * @return list<array{work_date:string, status:string, leave_type:?string, first_in_at:?string,
+     *     last_out_at:?string, worked_minutes:int, regular_minutes:int, overtime_minutes:int, overtime_amount:?string}>
+     */
+    public function attendanceCalendar(string $month): array
+    {
+        return $this->send('GET', 'attendance/calendar', ['month' => $month]);
+    }
+
+    /** Independent of punches - a user-declared log, not reconciled with worked_minutes. */
+    public function logManualRegularHours(string $workDate, int $minutes, ?string $reason = null): array
+    {
+        return $this->send('POST', 'attendance/manual', array_filter([
+            'work_date' => $workDate,
+            'minutes' => $minutes,
+            'reason' => $reason,
+        ], fn ($v) => $v !== null && $v !== ''));
+    }
+
+    /** @return array{month: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string}, year: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string}} */
+    public function attendanceTotals(?string $month = null): array
+    {
+        return $this->send('GET', 'attendance/totals', array_filter(['month' => $month]));
+    }
+
+    /** The employee's current regular/overtime values for one day - what "log hours" prefills. */
+    public function dayEntry(string $workDate): array
+    {
+        return $this->send('GET', 'attendance/manual', ['work_date' => $workDate]);
+    }
+
     // ─── Leave ──────────────────────────────────────────────────────────────────
 
     public function leaveTypes(): array

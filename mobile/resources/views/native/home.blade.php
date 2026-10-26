@@ -20,15 +20,10 @@
                     @if ($todayStatus !== '')
                         <native:text class="text-sm text-theme-primary">{{ $todayStatus }}</native:text>
                     @endif
-
-                    @if ($punchedIn)
-                        <native:button label="Punch out" variant="destructive" size="lg" :loading="$busy" @press="punchOut" />
-                    @else
-                        <native:button label="Punch in" variant="primary" size="lg" :loading="$busy" @press="punchIn" />
-                    @endif
                 </native:column>
 
                 {{-- This month --}}
+                <native:text class="text-lg font-bold text-theme-on-surface">This month</native:text>
                 <native:row class="w-full gap-3">
                     <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
                         <native:text class="text-2xl font-bold text-theme-on-surface">{{ $month['present'] }}</native:text>
@@ -38,11 +33,19 @@
                         <native:text class="text-2xl font-bold text-theme-on-surface">{{ $month['late'] }}</native:text>
                         <native:text class="text-xs text-theme-on-surface-variant">Late</native:text>
                     </native:column>
-                    <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
-                        <native:text class="text-lg font-bold text-theme-on-surface">{{ $month['worked'] }}</native:text>
-                        <native:text class="text-xs text-theme-on-surface-variant">Worked</native:text>
-                    </native:column>
                 </native:row>
+                <native:column class="w-full p-3 gap-2 rounded-2xl bg-theme-surface-variant/40">
+                    <native:row class="w-full items-center justify-between">
+                        <native:text class="text-base text-theme-on-surface">Regular</native:text>
+                        <native:text class="text-base font-bold text-theme-on-surface">{{ $month['regular'] }}</native:text>
+                    </native:row>
+                    <native:row class="w-full items-center justify-between">
+                        <native:text class="text-base text-theme-on-surface">Overtime</native:text>
+                        <native:text class="text-base font-bold text-theme-primary">
+                            {{ $month['overtime'] }}@if ($month['overtimeAmount'] !== null) - {{ $month['overtimeAmount'] }} @endif
+                        </native:text>
+                    </native:row>
+                </native:column>
 
                 {{-- Leave balance --}}
                 @if (count($balances) > 0)

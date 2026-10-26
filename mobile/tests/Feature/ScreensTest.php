@@ -11,6 +11,7 @@ use App\NativeComponents\Home;
 use App\NativeComponents\Leave;
 use App\NativeComponents\LeaveCreate;
 use App\NativeComponents\Login;
+use App\NativeComponents\ManualHoursCreate;
 use App\NativeComponents\More;
 use App\NativeComponents\Overtime;
 use App\NativeComponents\OvertimeCreate;
@@ -36,6 +37,29 @@ class ScreensTest extends TestCase
     private function signIn(): void
     {
         app(TokenStore::class)->put('tok-123');
+    }
+
+    /** Every day of $month, defaulted to unmarked; $overrides replaces specific days by work_date. */
+    private function calendarDays(string $month, array $overrides = []): array
+    {
+        $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $overridesByDate = collect($overrides)->keyBy('work_date');
+
+        return collect(range(1, $start->daysInMonth))->map(function (int $day) use ($start, $overridesByDate) {
+            $date = $start->copy()->day($day)->toDateString();
+
+            return $overridesByDate->get($date) ?? [
+                'work_date' => $date,
+                'status' => '',
+                'leave_type' => null,
+                'first_in_at' => null,
+                'last_out_at' => null,
+                'worked_minutes' => 0,
+                'regular_minutes' => 0,
+                'overtime_minutes' => 0,
+                'overtime_amount' => null,
+            ];
+        })->values()->all();
     }
 
     private function dashboard(array $overrides = []): array
@@ -111,71 +135,27 @@ class ScreensTest extends TestCase
     public function test_home_shows_the_dashboard(): void
     {
         $this->signIn();
-        Http::fake([self::BASE.'/dashboard' => Http::response($this->dashboard())]);
+        Http::fake([
+            self::BASE.'/dashboard' => Http::response($this->dashboard()),
+            self::BASE.'/attendance/totals*' => Http::response([
+                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00'],
+                'year' => ['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null],
+            ]),
+        ]);
 
         Native::test(Home::class)
             ->assertSee('Hello, Alice')
             ->assertSee('Software Engineer - Engineering')
             ->assertSee('Not punched in')
-            ->assertSee('Punch in')
+            ->assertDontSee('Punch in')
+            ->assertDontSee('Punch out')
             ->assertSee('Annual Leave')
             ->assertSee('16 / 18')
             ->assertDontSee('Unpaid Leave')            // zero-allocation types are hidden
             ->assertSee('Diwali')
-            ->assertSee('55h 30m');
-    }
-
-    public function test_home_punch_in_calls_the_api_and_refreshes(): void
-    {
-        $this->signIn();
-        Http::fake([
-            self::BASE.'/attendance/punch-in' => Http::response(['record' => ['status' => 'present']], 201),
-            self::BASE.'/dashboard' => Http::sequence()
-                ->push($this->dashboard())
-                ->push($this->dashboard([
-                    'is_punched_in' => true,
-                    'today' => ['status' => 'present', 'first_in_at' => '2026-10-13T09:02:00.000000Z', 'last_out_at' => null],
-                ])),
-        ]);
-
-        Native::test(Home::class)
-            ->assertSee('Punch in')
-            ->tap('Punch in')
-            ->assertSee('Punched in since 09:02')
-            ->assertSee('Punch out');
-
-        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/attendance/punch-in'
-            && $r->hasHeader('Authorization', 'Bearer tok-123'));
-    }
-
-    public function test_home_punch_out(): void
-    {
-        $this->signIn();
-        Http::fake([
-            self::BASE.'/attendance/punch-out' => Http::response(['record' => []]),
-            self::BASE.'/dashboard' => Http::sequence()
-                ->push($this->dashboard(['is_punched_in' => true, 'today' => ['status' => 'present', 'first_in_at' => '2026-10-13T09:02:00Z']]))
-                ->push($this->dashboard(['today' => ['status' => 'present', 'first_in_at' => '2026-10-13T09:02:00Z', 'last_out_at' => '2026-10-13T18:05:00Z', 'worked_minutes' => 543]])),
-        ]);
-
-        Native::test(Home::class)
-            ->assertSee('Punch out')
-            ->tap('Punch out')
-            ->assertSee('Last out at 18:05 - 9h 3m worked')
-            ->assertSee('Punch in');
-    }
-
-    public function test_a_punch_rejected_by_the_server_shows_its_message(): void
-    {
-        $this->signIn();
-        Http::fake([
-            self::BASE.'/dashboard' => Http::response($this->dashboard()),
-            self::BASE.'/attendance/punch-in' => Http::response(['message' => 'You are already punched in.', 'errors' => ['punch' => ['You are already punched in.']]], 422),
-        ]);
-
-        Native::test(Home::class)
-            ->tap('Punch in')
-            ->assertSee('You are already punched in.');
+            ->assertSee('2h 5m')
+            ->assertSee('1h 0m')
+            ->assertSee('200.00');
     }
 
     public function test_an_expired_session_sends_the_user_to_login(): void
@@ -205,24 +185,243 @@ class ScreensTest extends TestCase
         $this->signIn();
         $month = now()->format('Y-m');
         $previous = now()->subMonthNoOverflow()->format('Y-m');
-        Http::fake(function (Request $r) use ($month) {
-            return Http::response(['data' => str_contains($r->url(), "month={$month}") ? [
-                ['work_date' => $month.'-02', 'first_in_at' => $month.'-02T09:05:00Z', 'last_out_at' => $month.'-02T18:00:00Z', 'worked_minutes' => 535, 'status' => 'late'],
-                ['work_date' => $month.'-03', 'first_in_at' => null, 'last_out_at' => null, 'worked_minutes' => 0, 'status' => 'absent'],
-            ] : []]);
+        Http::fake(function (Request $r) use ($month, $previous) {
+            if (str_contains($r->url(), "month={$month}")) {
+                return Http::response($this->calendarDays($month, [
+                    ['work_date' => $month.'-02', 'status' => 'late', 'leave_type' => null, 'first_in_at' => $month.'-02T09:05:00Z', 'last_out_at' => $month.'-02T18:00:00Z', 'worked_minutes' => 535, 'regular_minutes' => 535, 'overtime_minutes' => 0, 'overtime_amount' => null],
+                    ['work_date' => $month.'-03', 'status' => 'absent', 'leave_type' => null, 'first_in_at' => null, 'last_out_at' => null, 'worked_minutes' => 0, 'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null],
+                ]));
+            }
+
+            return Http::response($this->calendarDays($previous));
         });
 
+        // Detail (in/out, regular/overtime) now lives in a modal opened by tapping a day;
+        // selectDay() is the direct-call bypass, same pattern as Leave::confirmCancel()/cancel().
         Native::test(Attendance::class)
             ->assertSee(now()->format('F Y'))
+            ->call('selectDay', $month.'-02')
             ->assertSee('In 09:05 - Out 18:00 - 8h 55m')
             ->assertSee('Late')
+            ->tap('Close')
+            ->assertDontSee('In 09:05 - Out 18:00 - 8h 55m')
+            ->call('selectDay', $month.'-03')
             ->assertSee('Absent')
             ->assertSee('No punches recorded')
             ->tap('Prev')
             ->assertSee(now()->subMonthNoOverflow()->format('F Y'))
-            ->assertSee('No attendance recorded');
+            // Every day of the month comes back from the backend already, even fully unmarked ones.
+            ->call('selectDay', $previous.'-01')
+            ->assertSee('No punches recorded');
 
         Http::assertSent(fn (Request $r) => str_contains($r->url(), "month={$previous}"));
+    }
+
+    public function test_attendance_shows_leave_and_logged_statuses_distinctly(): void
+    {
+        $this->signIn();
+        $month = now()->format('Y-m');
+        Http::fake([
+            self::BASE.'/attendance/calendar?*' => Http::response($this->calendarDays($month, [
+                ['work_date' => $month.'-02', 'status' => 'leave', 'leave_type' => 'Annual Leave', 'first_in_at' => null, 'last_out_at' => null, 'worked_minutes' => 0, 'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null],
+                ['work_date' => $month.'-03', 'status' => 'logged', 'leave_type' => null, 'first_in_at' => null, 'last_out_at' => null, 'worked_minutes' => 0, 'regular_minutes' => 90, 'overtime_minutes' => 0, 'overtime_amount' => null],
+            ])),
+            self::BASE.'/attendance/totals*' => Http::response(['month' => [], 'year' => []]),
+        ]);
+
+        Native::test(Attendance::class)
+            ->call('selectDay', $month.'-02')
+            ->assertSee('Annual Leave')
+            ->assertSee('On leave')
+            ->tap('Close')
+            ->call('selectDay', $month.'-03')
+            ->assertSee('Logged')
+            ->assertSee('Logged manually (no punch)');
+    }
+
+    public function test_attendance_shows_month_and_year_totals(): void
+    {
+        $this->signIn();
+        Http::fake([
+            self::BASE.'/attendance/calendar?*' => Http::response($this->calendarDays(now()->format('Y-m'))),
+            self::BASE.'/attendance/totals*' => Http::response([
+                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00'],
+                'year' => ['regular_minutes' => 6005, 'overtime_minutes' => 600, 'overtime_amount' => '2000.00'],
+            ]),
+        ]);
+
+        Native::test(Attendance::class)
+            ->assertSee('This month')
+            ->assertSee('2h 5m')
+            ->assertSee('1h 0m')
+            ->assertSee('200.00')
+            ->assertSee('This year')
+            ->assertSee('100h 5m')
+            ->assertSee('10h 0m')
+            ->assertSee('2000.00');
+    }
+
+    public function test_tapping_log_hours_navigates_to_the_combined_entry_screen_prefilled(): void
+    {
+        $this->signIn();
+        $date = now()->format('Y-m').'-02';
+        Http::fake([
+            self::BASE.'/attendance/calendar?*' => Http::response($this->calendarDays(now()->format('Y-m'))),
+            self::BASE.'/attendance/totals*' => Http::response(['month' => [], 'year' => []]),
+            self::BASE.'/attendance/manual?*' => Http::response([
+                'regular_minutes' => 90, 'overtime_minutes' => 60, 'overtime_amount' => '200.00',
+            ]),
+        ]);
+
+        $list = Native::test(Attendance::class)
+            ->call('selectDay', $date)
+            ->call('logHours')
+            ->assertNavigatedTo('/attendance/manual');
+
+        $form = $list->follow();
+
+        $form->assertScreen(ManualHoursCreate::class)
+            ->assertSet('workDate', $date)
+            ->assertSet('regularHours', '1.5')
+            ->assertSet('overtimeHours', '1')
+            ->assertNavTitle('Log hours');
+    }
+
+    public function test_manual_hours_create_prefills_blank_when_nothing_was_logged_yet(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response([
+            'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null,
+        ])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->assertSet('regularHours', '')
+            ->assertSet('overtimeHours', '');
+    }
+
+    public function test_manual_hours_create_submits_regular_minutes(): void
+    {
+        $this->signIn();
+        Http::fake([
+            self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]),
+            self::BASE.'/attendance/manual' => Http::response(['minutes' => 90], 201),
+        ]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->set('regularHours', '1.5')
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/attendance/manual'
+            && $r->data()['work_date'] === '2026-11-02' && $r->data()['minutes'] === 90);
+    }
+
+    public function test_manual_hours_create_submits_overtime_via_the_existing_endpoint(): void
+    {
+        $this->signIn();
+        Http::fake([
+            self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]),
+            self::BASE.'/overtime-requests' => Http::response(['minutes' => 30, 'amount' => '100.00'], 201),
+        ]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->set('overtimeHours', '0.5')
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/overtime-requests'
+            && $r->data()['work_date'] === '2026-11-02' && $r->data()['minutes'] === 30);
+    }
+
+    public function test_manual_hours_create_submits_both_regular_and_overtime_together(): void
+    {
+        $this->signIn();
+        Http::fake([
+            self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]),
+            self::BASE.'/attendance/manual' => Http::response(['minutes' => 120], 201),
+            self::BASE.'/overtime-requests' => Http::response(['minutes' => 60, 'amount' => '100.00'], 201),
+        ]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->set('regularHours', '2')
+            ->set('overtimeHours', '1')
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/attendance/manual' && $r->data()['minutes'] === 120);
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/overtime-requests' && $r->data()['minutes'] === 60);
+    }
+
+    public function test_manual_hours_create_sends_nothing_when_resubmitted_unchanged(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response([
+            'regular_minutes' => 90, 'overtime_minutes' => 60, 'overtime_amount' => '200.00',
+        ])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->assertSet('regularHours', '1.5')
+            ->assertSet('overtimeHours', '1')
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
+    }
+
+    public function test_manual_hours_create_only_resubmits_the_field_that_changed(): void
+    {
+        $this->signIn();
+        Http::fake([
+            self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 90, 'overtime_minutes' => 60, 'overtime_amount' => '200.00']),
+            self::BASE.'/overtime-requests' => Http::response(['minutes' => 120, 'amount' => '400.00'], 201),
+        ]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->assertSet('regularHours', '1.5')
+            ->set('overtimeHours', '2')
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/attendance/manual');
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/overtime-requests' && $r->data()['minutes'] === 120);
+    }
+
+    public function test_manual_hours_create_validates_hours_before_calling_the_server(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->set('regularHours', 'abc')
+            ->tap('Save')
+            ->assertSee('Enter a number of hours greater than 0');
+
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
+    }
+
+    public function test_manual_hours_create_rejects_more_than_24_hours(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->set('overtimeHours', '25')
+            ->tap('Save')
+            ->assertSee('24');
+
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
+    }
+
+    public function test_manual_hours_create_requires_at_least_one_field(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => '2026-11-02'])
+            ->tap('Save')
+            ->assertSee('Enter regular and/or overtime hours');
+
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
     }
 
     // ─── Leave ──────────────────────────────────────────────────────────────────

@@ -25,6 +25,10 @@ Route::prefix('v1')->group(function () {
         Route::get('attendance/today', [AttendanceController::class, 'today']);
         Route::post('attendance/punch-in', [AttendanceController::class, 'punchIn']);
         Route::post('attendance/punch-out', [AttendanceController::class, 'punchOut']);
+        Route::post('attendance/manual', [AttendanceController::class, 'logManual']);
+        Route::get('attendance/manual', [AttendanceController::class, 'dayEntry']);
+        Route::get('attendance/totals', [AttendanceController::class, 'totals']);
+        Route::get('attendance/calendar', [AttendanceController::class, 'calendar']);
         Route::get('attendance', [AttendanceController::class, 'index']);
 
         Route::get('leave-types', [LeaveController::class, 'types']);

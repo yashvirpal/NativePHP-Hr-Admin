@@ -4,7 +4,6 @@ namespace App\NativeComponents;
 
 use App\Support\Format;
 use Illuminate\View\View;
-use Native\Mobile\Facades\Dialog;
 
 class Home extends Screen
 {
@@ -23,8 +22,8 @@ class Home extends Screen
 
     public string $todayStatus = '';
 
-    /** @var array{present: int, late: int, worked: string} */
-    public array $month = ['present' => 0, 'late' => 0, 'worked' => '-'];
+    /** @var array{present: int, late: int, regular: string, overtime: string, overtimeAmount: ?string} */
+    public array $month = ['present' => 0, 'late' => 0, 'regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
 
     /** @var list<array{name: string, remaining: string, allocated: string}> */
     public array $balances = [];
@@ -58,28 +57,6 @@ class Home extends Screen
         $this->load();
     }
 
-    public function punchIn(): void
-    {
-        $this->punch(fn ($api) => $api->punchIn(['device_info' => config('hr.device_name')]), 'Punched in');
-    }
-
-    public function punchOut(): void
-    {
-        $this->punch(fn ($api) => $api->punchOut(['device_info' => config('hr.device_name')]), 'Punched out');
-    }
-
-    private function punch(\Closure $request, string $message): void
-    {
-        $this->busy = true;
-        $result = $this->call($request);
-        $this->busy = false;
-
-        if ($result !== null) {
-            Dialog::toast($message, 'short');
-            $this->load();
-        }
-    }
-
     private function load(): void
     {
         $data = $this->call(fn ($api) => $api->dashboard());
@@ -105,10 +82,15 @@ class Home extends Screen
         };
 
         $month = $data['month'] ?? [];
+        $totals = $this->call(fn ($api) => $api->attendanceTotals());
+        $monthTotals = $totals['month'] ?? [];
+
         $this->month = [
             'present' => (int) ($month['days_present'] ?? 0),
             'late' => (int) ($month['days_late'] ?? 0),
-            'worked' => Format::minutes($month['worked_minutes'] ?? 0),
+            'regular' => Format::minutes($monthTotals['regular_minutes'] ?? 0),
+            'overtime' => Format::minutes($monthTotals['overtime_minutes'] ?? 0),
+            'overtimeAmount' => $monthTotals['overtime_amount'] ?? null,
         ];
 
         $this->balances = collect($data['balances'] ?? [])
