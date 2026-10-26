@@ -10,12 +10,10 @@ use App\NativeComponents\Home;
 use App\NativeComponents\Layouts\MainTabsLayout;
 use App\NativeComponents\Layouts\StackLayout;
 use App\NativeComponents\Leave;
-use App\NativeComponents\LeaveCreate;
 use App\NativeComponents\Login;
 use App\NativeComponents\ManualHoursCreate;
 use App\NativeComponents\More;
 use App\NativeComponents\Overtime;
-use App\NativeComponents\OvertimeCreate;
 use App\NativeComponents\OvertimeRate;
 use Illuminate\Support\Facades\Route;
 
@@ -41,8 +39,6 @@ Route::nativeGroup(MainTabsLayout::class, function () {
 Route::nativeGroup(StackLayout::class, function () {
     Route::native('/forgot-password', ForgotPassword::class);
     Route::native('/attendance/manual', ManualHoursCreate::class);
-    Route::native('/leave/new', LeaveCreate::class);
-    Route::native('/overtime/new', OvertimeCreate::class);
     Route::native('/overtime/rate', OvertimeRate::class);
     Route::native('/holidays', Holidays::class);
     Route::native('/companies', Companies::class);

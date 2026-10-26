@@ -119,11 +119,6 @@ class HrApi
 
     // ─── Leave ──────────────────────────────────────────────────────────────────
 
-    public function leaveTypes(): array
-    {
-        return $this->send('GET', 'leave-types');
-    }
-
     public function leaveBalances(): array
     {
         return $this->send('GET', 'leave-balances');
@@ -132,16 +127,6 @@ class HrApi
     public function leaveRequests(int $page = 1): array
     {
         return $this->send('GET', 'leave-requests', ['page' => $page]);
-    }
-
-    public function requestLeave(int $leaveTypeId, string $startDate, string $endDate, ?string $reason = null): array
-    {
-        return $this->send('POST', 'leave-requests', array_filter([
-            'leave_type_id' => $leaveTypeId,
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'reason' => $reason,
-        ], fn ($v) => $v !== null && $v !== ''));
     }
 
     public function cancelLeave(int $id): array

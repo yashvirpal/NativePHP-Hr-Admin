@@ -12,15 +12,13 @@
                 <native:text class="text-sm text-theme-destructive">{{ $error }}</native:text>
             @endif
 
-            <native:button label="Request leave" variant="primary" @press="newRequest" />
-
             @if (count($balances) > 0)
                 <native:text class="text-lg font-bold text-theme-on-surface">Balance</native:text>
                 <native:column class="w-full gap-2">
                     @foreach ($balances as $b)
                         <native:row class="w-full items-center justify-between">
                             <native:text class="text-base text-theme-on-surface">{{ $b['name'] }}</native:text>
-                            <native:text class="text-base font-bold text-theme-on-surface">{{ $b['remaining'] }} / {{ $b['allocated'] }}</native:text>
+                            <native:text class="text-base font-bold text-theme-on-surface">{{ $b['remaining'] }} / {{ $b['allocated'] }} ({{ $b['used'] }} used)</native:text>
                         </native:row>
                     @endforeach
                 </native:column>

@@ -202,10 +202,12 @@ class EmployeePortalService
     /**
      * Regular/overtime minute totals for the given month and for its whole year, combining
      * punch-derived regular minutes (worked_minutes - that day's overtime) with manually
-     * logged regular entries. Clamped per day before summing, never negative.
+     * logged regular entries. Clamped per day before summing, never negative. Also includes
+     * the employee's all-time overtime total, independent of the requested month.
      *
      * @return array{month: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string},
-     *               year: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string}}
+     *               year: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string},
+     *               lifetime: array{overtime_minutes:int, overtime_amount:?string}}
      */
     public function attendanceTotals(Employee $employee, ?string $month = null): array
     {
@@ -213,9 +215,17 @@ class EmployeePortalService
             ? Carbon::createFromFormat('Y-m', $month)->startOfMonth()
             : Carbon::now()->startOfMonth();
 
+        $lifetimeOvertime = OvertimeRequest::where('employee_id', $employee->id)
+            ->selectRaw('sum(minutes) as minutes, sum(amount) as amount')
+            ->first();
+
         return [
             'month' => $this->totalsFor($employee, $monthStart->toDateString(), $monthStart->copy()->endOfMonth()->toDateString()),
             'year' => $this->totalsFor($employee, $monthStart->copy()->startOfYear()->toDateString(), $monthStart->copy()->endOfYear()->toDateString()),
+            'lifetime' => [
+                'overtime_minutes' => (int) ($lifetimeOvertime->minutes ?? 0),
+                'overtime_amount' => $lifetimeOvertime->amount !== null ? number_format((float) $lifetimeOvertime->amount, 2, '.', '') : null,
+            ],
         ];
     }
 
@@ -260,22 +270,29 @@ class EmployeePortalService
         return LeaveType::orderBy('name')->get();
     }
 
-    /** @return Collection<int, array{leave_type: LeaveType, year: int, allocated: mixed, used: mixed, remaining: float}> */
+    /**
+     * Only Annual Leave ('AL') — the one leave type employees see on their dashboard and Leave
+     * screen; other types still exist for admin reporting but aren't surfaced here.
+     *
+     * @return Collection<int, array{leave_type: LeaveType, year: int, allocated: mixed, used: mixed, remaining: float}>
+     */
     public function leaveBalances(Employee $employee, ?int $year = null): Collection
     {
         $year ??= Carbon::now()->year;
 
-        return $this->leaveTypes()->map(function (LeaveType $type) use ($employee, $year) {
-            $balance = $this->leave->balanceFor($employee, $type, $year);
+        return $this->leaveTypes()
+            ->filter(fn (LeaveType $type) => $type->code === 'AL')
+            ->map(function (LeaveType $type) use ($employee, $year) {
+                $balance = $this->leave->balanceFor($employee, $type, $year);
 
-            return [
-                'leave_type' => $type,
-                'year' => $year,
-                'allocated' => $balance->allocated,
-                'used' => $balance->used,
-                'remaining' => $balance->remaining(),
-            ];
-        });
+                return [
+                    'leave_type' => $type,
+                    'year' => $year,
+                    'allocated' => $balance->allocated,
+                    'used' => $balance->used,
+                    'remaining' => $balance->remaining(),
+                ];
+            })->values();
     }
 
     public function leaveRequests(Employee $employee): LengthAwarePaginator

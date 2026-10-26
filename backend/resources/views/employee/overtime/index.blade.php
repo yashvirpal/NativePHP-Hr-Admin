@@ -45,19 +45,6 @@
     @endif
 </div>
 
-<form method="post" action="{{ route('employee.overtime.store') }}" class="card">
-    @csrf
-    <div class="form-grid">
-        <div class="field"><label for="work_date">Date worked</label><input id="work_date" type="date" name="work_date" value="{{ old('work_date') }}" max="{{ now()->toDateString() }}" required></div>
-        <div class="field"><label for="minutes">Minutes</label><input id="minutes" type="number" name="minutes" value="{{ old('minutes', 60) }}" min="1" max="720" required></div>
-        <div class="field"><label for="reason">Reason</label><input id="reason" name="reason" value="{{ old('reason') }}" maxlength="1000"></div>
-    </div>
-    <p class="muted" style="margin-top:0">
-        @if ($rate['rate'] !== null) Will be worth {{ number_format((float) $rate['rate'], 2) }} per hour. @else No rate set: set one above to see an amount. @endif
-    </p>
-    <button>Submit request</button>
-</form>
-
 <div class="card">
     <h2>My requests</h2>
     <div class="table-wrap"><table>

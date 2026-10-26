@@ -5,25 +5,9 @@
 
 <div class="grid">
     @foreach ($balances->where('allocated', '>', 0) as $b)
-        <div class="card stat"><span>{{ $b['leave_type']->name }}</span><b>{{ $b['remaining'] }}</b><span>of {{ $b['allocated'] }} days left</span></div>
+        <div class="card stat"><span>{{ $b['leave_type']->name }}</span><b>{{ $b['remaining'] }}</b><span>of {{ $b['allocated'] }} days left &middot; {{ $b['used'] }} used</span></div>
     @endforeach
 </div>
-
-<form method="post" action="{{ route('employee.leave.store') }}" class="card">
-    @csrf
-    <h2 style="padding:0 0 12px;margin-bottom:16px">Apply for leave</h2>
-    <div class="form-grid">
-        <div class="field"><label for="leave_type_id">Type</label>
-            <select id="leave_type_id" name="leave_type_id" required>
-                @foreach ($types as $t) <option value="{{ $t->id }}" @selected((int) old('leave_type_id') === $t->id)>{{ $t->name }}</option> @endforeach
-            </select></div>
-        <div class="field"><label for="start_date">From</label><input id="start_date" type="date" name="start_date" value="{{ old('start_date') }}" min="{{ now()->toDateString() }}" required></div>
-        <div class="field"><label for="end_date">To</label><input id="end_date" type="date" name="end_date" value="{{ old('end_date') }}" min="{{ now()->toDateString() }}" required></div>
-        <div class="field"><label for="reason">Reason</label><input id="reason" name="reason" value="{{ old('reason') }}" maxlength="1000"></div>
-    </div>
-    <p class="muted" style="margin-top:0">Weekends and public holidays are not counted.</p>
-    <button>Submit request</button>
-</form>
 
 <div class="card">
     <h2>My requests</h2>

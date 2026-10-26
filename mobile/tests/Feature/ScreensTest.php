@@ -9,12 +9,10 @@ use App\NativeComponents\CompanyForm;
 use App\NativeComponents\Holidays;
 use App\NativeComponents\Home;
 use App\NativeComponents\Leave;
-use App\NativeComponents\LeaveCreate;
 use App\NativeComponents\Login;
 use App\NativeComponents\ManualHoursCreate;
 use App\NativeComponents\More;
 use App\NativeComponents\Overtime;
-use App\NativeComponents\OvertimeCreate;
 use App\NativeComponents\OvertimeRate;
 use App\Services\Api\TokenStore;
 use Illuminate\Http\Client\Request;
@@ -140,6 +138,7 @@ class ScreensTest extends TestCase
             self::BASE.'/attendance/totals*' => Http::response([
                 'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00'],
                 'year' => ['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null],
+                'lifetime' => ['overtime_minutes' => 900, 'overtime_amount' => '3000.00'],
             ]),
         ]);
 
@@ -151,11 +150,14 @@ class ScreensTest extends TestCase
             ->assertDontSee('Punch out')
             ->assertSee('Annual Leave')
             ->assertSee('16 / 18')
+            ->assertSee('2 used')
             ->assertDontSee('Unpaid Leave')            // zero-allocation types are hidden
             ->assertSee('Diwali')
             ->assertSee('2h 5m')
             ->assertSee('1h 0m')
-            ->assertSee('200.00');
+            ->assertSee('200.00')
+            ->assertSee('Overtime total (all-time)')
+            ->assertSee('3000.00');
     }
 
     public function test_an_expired_session_sends_the_user_to_login(): void
@@ -438,19 +440,18 @@ class ScreensTest extends TestCase
     {
         $this->signIn();
         Http::fake([
-            self::BASE.'/leave-balances' => Http::response([['leave_type' => ['name' => 'Annual Leave'], 'allocated' => '18.0', 'remaining' => 16]]),
+            self::BASE.'/leave-balances' => Http::response([['leave_type' => ['name' => 'Annual Leave'], 'allocated' => '18.0', 'used' => '2.0', 'remaining' => 16]]),
             self::BASE.'/leave-requests*' => Http::response($this->leavePage()),
         ]);
 
         Native::test(Leave::class)
             ->assertSee('16 / 18')
+            ->assertSee('2 used')
             ->assertSee('02 Nov - 03 Nov 2026 - 2 day(s)')
             ->assertSee('Approved')
             ->assertSee('01 Oct 2026 - 1 day(s)')
             ->assertSee('Cancelled')
-            ->assertSee('Cancel request')          // only the still-approved one
-            ->tap('Request leave')
-            ->assertNavigatedTo('/leave/new');
+            ->assertSee('Cancel request');         // only the still-approved one
     }
 
     public function test_cancelling_a_leave_request_calls_the_api(): void
@@ -467,46 +468,9 @@ class ScreensTest extends TestCase
         Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/leave-requests/5/cancel');
     }
 
-    public function test_new_leave_request_is_submitted_with_the_chosen_type_id(): void
-    {
-        $this->signIn();
-        Http::fake([
-            self::BASE.'/leave-types' => Http::response([['id' => 1, 'name' => 'Annual Leave'], ['id' => 2, 'name' => 'Sick Leave']]),
-            self::BASE.'/leave-requests' => Http::response(['id' => 9], 201),
-        ]);
-
-        Native::test(LeaveCreate::class)
-            ->set('typeName', 'Sick Leave')
-            ->set('startDate', '2026-11-03')
-            ->set('endDate', '2026-11-04')
-            ->set('reason', 'Flu')
-            ->tap('Submit request')
-            ->assertWentBack();
-
-        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/leave-requests'
-            && $r['leave_type_id'] === 2 && $r['start_date'] === '2026-11-03' && $r['end_date'] === '2026-11-04' && $r['reason'] === 'Flu');
-    }
-
-    public function test_leave_request_requires_a_type_and_shows_server_validation(): void
-    {
-        $this->signIn();
-        Http::fake([
-            self::BASE.'/leave-types' => Http::response([['id' => 1, 'name' => 'Annual Leave']]),
-            self::BASE.'/leave-requests' => Http::response(['message' => 'Insufficient leave balance.', 'errors' => ['leave_type_id' => ['Insufficient leave balance.']]], 422),
-        ]);
-
-        Native::test(LeaveCreate::class)
-            ->tap('Submit request')
-            ->assertSee('Choose a leave type.')
-            ->set('typeName', 'Annual Leave')
-            ->tap('Submit request')
-            ->assertSee('Insufficient leave balance.')
-            ->assertNoNavigation();
-    }
-
     // ─── Overtime ───────────────────────────────────────────────────────────────
 
-    public function test_overtime_lists_requests_and_opens_the_form(): void
+    public function test_overtime_lists_requests(): void
     {
         $this->signIn();
         Http::fake(['*' => Http::response(['data' => [
@@ -517,9 +481,7 @@ class ScreensTest extends TestCase
             ->assertSee('Sat, 10 Oct 2026')
             ->assertSee('1h 30m')
             ->assertSee('Release')
-            ->assertSee('Approved')
-            ->tap('Request overtime')
-            ->assertNavigatedTo('/overtime/new');
+            ->assertSee('Approved');
     }
 
     public function test_overtime_shows_the_current_rate_and_each_requests_own_rate(): void
@@ -627,26 +589,6 @@ class ScreensTest extends TestCase
             ->assertSee('from 05 Nov 2026')
             ->assertSee('150.00 per hour')
             ->assertSee('from 01 Oct 2026');
-    }
-
-    public function test_overtime_form_validates_minutes_locally_then_submits(): void
-    {
-        $this->signIn();
-        Http::fake(['*' => Http::response(['id' => 1], 201)]);
-
-        Native::test(OvertimeCreate::class)
-            ->set('minutes', 'abc')
-            ->tap('Submit request')
-            ->assertSee('Enter the number of minutes worked')
-            ->set('workDate', '2026-10-10')
-            ->set('minutes', '120')
-            ->set('reason', 'Deadline')
-            ->tap('Submit request')
-            ->assertWentBack();
-
-        Http::assertSentCount(1);
-        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/overtime-requests'
-            && $r['work_date'] === '2026-10-10' && $r['minutes'] === 120 && $r['reason'] === 'Deadline');
     }
 
     // ─── Holidays ───────────────────────────────────────────────────────────────
@@ -820,6 +762,6 @@ class ScreensTest extends TestCase
         $this->signIn();
         Http::fake(['*' => Http::response([])]);
 
-        Native::visit('/leave/new')->assertScreen(LeaveCreate::class)->assertTabBarHidden();
+        Native::visit('/overtime/rate')->assertScreen(OvertimeRate::class)->assertTabBarHidden();
     }
 }

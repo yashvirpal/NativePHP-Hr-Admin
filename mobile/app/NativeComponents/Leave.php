@@ -8,7 +8,7 @@ use Native\Mobile\Facades\Dialog;
 
 class Leave extends Screen
 {
-    /** @var list<array{name: string, remaining: string, allocated: string}> */
+    /** @var list<array{name: string, remaining: string, allocated: string, used: string}> */
     public array $balances = [];
 
     /** @var list<array{id: int, type: string, period: string, days: string, status: string, statusKey: string, reason: string, canCancel: bool}> */
@@ -29,7 +29,6 @@ class Leave extends Screen
         $this->load();
     }
 
-    /** Fires when returning from the "new request" screen, so the new request appears. */
     public function onResume(): void
     {
         $this->load();
@@ -38,11 +37,6 @@ class Leave extends Screen
     public function refresh(): void
     {
         $this->load();
-    }
-
-    public function newRequest(): void
-    {
-        $this->navigate('/leave/new');
     }
 
     /** Asks before cancelling; the actual call is cancel(). */
@@ -83,6 +77,7 @@ class Leave extends Screen
                 'name' => (string) ($b['leave_type']['name'] ?? ''),
                 'remaining' => Format::days($b['remaining'] ?? 0),
                 'allocated' => Format::days($b['allocated'] ?? 0),
+                'used' => Format::days($b['used'] ?? 0),
             ])->values()->all();
 
         $page = $this->call(fn ($api) => $api->leaveRequests());

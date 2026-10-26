@@ -22,8 +22,6 @@
                 <native:button label="{{ $rate !== '' ? 'Change rate' : 'Set rate' }}" variant="ghost" size="sm" @press="changeRate" />
             </native:column>
 
-            <native:button label="Request overtime" variant="primary" @press="newRequest" />
-
             <native:text class="text-lg font-bold text-theme-on-surface">My requests</native:text>
 
             @forelse ($requests as $r)

@@ -38,11 +38,6 @@ class Overtime extends Screen
         $this->load();
     }
 
-    public function newRequest(): void
-    {
-        $this->navigate('/overtime/new');
-    }
-
     public function changeRate(): void
     {
         $this->navigate('/overtime/rate');

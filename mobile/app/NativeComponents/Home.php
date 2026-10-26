@@ -25,8 +25,11 @@ class Home extends Screen
     /** @var array{present: int, late: int, regular: string, overtime: string, overtimeAmount: ?string} */
     public array $month = ['present' => 0, 'late' => 0, 'regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
 
-    /** @var list<array{name: string, remaining: string, allocated: string}> */
+    /** @var list<array{name: string, remaining: string, allocated: string, used: string}> */
     public array $balances = [];
+
+    /** @var array{amount: ?string, hours: string} */
+    public array $lifetimeOvertime = ['amount' => null, 'hours' => '-'];
 
     /** @var list<array{name: string, date: string, optional: bool}> */
     public array $holidays = [];
@@ -84,6 +87,7 @@ class Home extends Screen
         $month = $data['month'] ?? [];
         $totals = $this->call(fn ($api) => $api->attendanceTotals());
         $monthTotals = $totals['month'] ?? [];
+        $lifetimeTotals = $totals['lifetime'] ?? [];
 
         $this->month = [
             'present' => (int) ($month['days_present'] ?? 0),
@@ -93,12 +97,18 @@ class Home extends Screen
             'overtimeAmount' => $monthTotals['overtime_amount'] ?? null,
         ];
 
+        $this->lifetimeOvertime = [
+            'amount' => $lifetimeTotals['overtime_amount'] ?? null,
+            'hours' => Format::minutes($lifetimeTotals['overtime_minutes'] ?? 0),
+        ];
+
         $this->balances = collect($data['balances'] ?? [])
             ->filter(fn ($b) => (float) ($b['allocated'] ?? 0) > 0)
             ->map(fn ($b) => [
                 'name' => (string) ($b['leave_type']['name'] ?? ''),
                 'remaining' => Format::days($b['remaining'] ?? 0),
                 'allocated' => Format::days($b['allocated'] ?? 0),
+                'used' => Format::days($b['used'] ?? 0),
             ])->values()->all();
 
         $this->holidays = collect($data['upcoming_holidays'] ?? [])->map(fn ($h) => [

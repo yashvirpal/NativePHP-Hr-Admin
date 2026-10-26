@@ -30,10 +30,15 @@
         <b>{{ intdiv($totals['overtime_minutes'], 60) }}h {{ $totals['overtime_minutes'] % 60 }}m</b>
         @if ($totals['overtime_amount'] !== null) <div class="muted">{{ $totals['overtime_amount'] }}</div> @endif
     </div>
+    <div class="card stat accent">
+        <span>Overtime total (all-time)</span>
+        <b>{{ $lifetimeOvertime['overtime_amount'] ?? '0.00' }}</b>
+        <div class="muted">{{ intdiv($lifetimeOvertime['overtime_minutes'], 60) }}h {{ $lifetimeOvertime['overtime_minutes'] % 60 }}m</div>
+    </div>
 </div>
 
 <div class="card">
-    <h2>Leave balance ({{ now()->year }}) <a class="btn ghost sm" href="{{ route('employee.leave.index') }}">Apply for leave</a></h2>
+    <h2>Leave balance ({{ now()->year }})</h2>
     <div class="table-wrap"><table>
         <thead><tr><th>Type</th><th>Allocated</th><th>Used</th><th>Remaining</th></tr></thead>
         <tbody>

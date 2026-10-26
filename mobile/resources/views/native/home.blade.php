@@ -45,6 +45,10 @@
                             {{ $month['overtime'] }}@if ($month['overtimeAmount'] !== null) - {{ $month['overtimeAmount'] }} @endif
                         </native:text>
                     </native:row>
+                    <native:row class="w-full items-center justify-between">
+                        <native:text class="text-base text-theme-on-surface">Overtime total (all-time)</native:text>
+                        <native:text class="text-base font-bold text-theme-accent">{{ $lifetimeOvertime['amount'] ?? '0.00' }}</native:text>
+                    </native:row>
                 </native:column>
 
                 {{-- Leave balance --}}
@@ -54,7 +58,7 @@
                         @foreach ($balances as $b)
                             <native:row class="w-full items-center justify-between">
                                 <native:text class="text-base text-theme-on-surface">{{ $b['name'] }}</native:text>
-                                <native:text class="text-base font-bold text-theme-on-surface">{{ $b['remaining'] }} / {{ $b['allocated'] }}</native:text>
+                                <native:text class="text-base font-bold text-theme-on-surface">{{ $b['remaining'] }} / {{ $b['allocated'] }} ({{ $b['used'] }} used)</native:text>
                             </native:row>
                         @endforeach
                     </native:column>

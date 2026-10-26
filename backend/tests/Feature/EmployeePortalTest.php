@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Admin;
 use App\Models\Company;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
@@ -77,6 +78,37 @@ class EmployeePortalTest extends ApiTestCase
 
         $response->assertDontSee('Punch in')->assertDontSee('Punch out');
         $response->assertSee('Overtime (this month)')->assertSee('1h 0m')->assertSee('200.00');
+    }
+
+    public function test_dashboard_shows_only_annual_leave_with_days_used(): void
+    {
+        $user = $this->makeUser();
+        LeaveType::create(['name' => 'Annual Leave', 'code' => 'AL', 'days_per_year' => 18]);
+        $sick = LeaveType::create(['name' => 'Sick Leave', 'code' => 'SL', 'days_per_year' => 10]);
+        $this->actingAs($user, 'web');
+
+        Sanctum::actingAs($user);
+        $this->postJson('/api/v1/leave-requests', [
+            'leave_type_id' => $sick->id, 'start_date' => '2026-11-02', 'end_date' => '2026-11-02',
+        ])->assertCreated();
+
+        $response = $this->actingAs($user, 'web')->get('/employee')->assertOk();
+
+        $response->assertSee('Annual Leave')->assertDontSee('Sick Leave');
+        $response->assertSee('0.0')->assertSee('18.0'); // 0 days used, 18 allocated
+    }
+
+    public function test_dashboard_shows_lifetime_overtime_total(): void
+    {
+        $user = $this->makeUser();
+        Sanctum::actingAs($user);
+        $this->putJson('/api/v1/overtime-rate', ['hourly_rate' => 200]);
+        $this->postJson('/api/v1/overtime-requests', ['work_date' => '2026-10-01', 'minutes' => 60])->assertCreated();
+        $this->postJson('/api/v1/overtime-requests', ['work_date' => '2026-11-01', 'minutes' => 30])->assertCreated();
+
+        $response = $this->actingAs($user, 'web')->get('/employee')->assertOk();
+
+        $response->assertSee('Overtime total (all-time)')->assertSee('300.00'); // (1h + 0.5h) at 200.00/h
     }
 
     public function test_double_punch_in_shows_an_error(): void
