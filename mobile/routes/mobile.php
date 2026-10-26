@@ -4,6 +4,7 @@ use App\NativeComponents\Attendance;
 use App\NativeComponents\Boot;
 use App\NativeComponents\Companies;
 use App\NativeComponents\CompanyForm;
+use App\NativeComponents\Earning;
 use App\NativeComponents\ForgotPassword;
 use App\NativeComponents\Holidays;
 use App\NativeComponents\Home;
@@ -40,6 +41,7 @@ Route::nativeGroup(StackLayout::class, function () {
     Route::native('/forgot-password', ForgotPassword::class);
     Route::native('/attendance/manual', ManualHoursCreate::class);
     Route::native('/overtime/rate', OvertimeRate::class);
+    Route::native('/earning', Earning::class);
     Route::native('/holidays', Holidays::class);
     Route::native('/companies', Companies::class);
     Route::native('/companies/form', CompanyForm::class);

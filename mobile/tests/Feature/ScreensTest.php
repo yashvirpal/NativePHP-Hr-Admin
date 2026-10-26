@@ -6,6 +6,7 @@ use App\NativeComponents\Attendance;
 use App\NativeComponents\Boot;
 use App\NativeComponents\Companies;
 use App\NativeComponents\CompanyForm;
+use App\NativeComponents\Earning;
 use App\NativeComponents\Holidays;
 use App\NativeComponents\Home;
 use App\NativeComponents\Leave;
@@ -740,6 +741,94 @@ class ScreensTest extends TestCase
 
         $this->assertFalse(app(TokenStore::class)->has());
         Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/auth/logout');
+    }
+
+    public function test_more_links_to_earning(): void
+    {
+        $this->signIn();
+        Http::fake(['*' => Http::response([])]);
+
+        Native::test(More::class)->tap('Earning')->assertNavigatedTo('/earning');
+    }
+
+    // ─── Earning ────────────────────────────────────────────────────────────────
+
+    public function test_earning_shows_the_default_monthly_period(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => 1, 'from' => '2026-11-01', 'to' => '2026-11-30',
+            'regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00', 'leave_days' => '7.0',
+        ])]);
+
+        Native::test(Earning::class)
+            ->assertSee('01 Nov 2026 - 30 Nov 2026')
+            ->assertSee('2h 5m')
+            ->assertSee('1h 0m')
+            ->assertSee('200.00')
+            ->assertSee('Leave days')
+            ->assertSee('7');
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/earnings?months=1');
+    }
+
+    public function test_earning_switches_between_periods(): void
+    {
+        $this->signIn();
+        Http::fake([
+            self::BASE.'/earnings*' => Http::response([
+                'months' => 3, 'from' => '2026-09-01', 'to' => '2026-11-30',
+                'regular_minutes' => 6005, 'overtime_minutes' => 600, 'overtime_amount' => '2000.00', 'leave_days' => '7.0',
+            ]),
+        ]);
+
+        Native::test(Earning::class)
+            ->tap('3 months')
+            ->assertSee('100h 5m')
+            ->assertSee('10h 0m')
+            ->assertSee('2000.00')
+            ->assertSee('7');
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/earnings?months=3');
+    }
+
+    public function test_earning_applies_a_custom_date_range(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => null, 'from' => '2026-08-01', 'to' => '2026-08-31',
+            'regular_minutes' => 60, 'overtime_minutes' => 30, 'overtime_amount' => '100.00', 'leave_days' => '0.0',
+        ])]);
+
+        Native::test(Earning::class)
+            ->tap('Custom range')
+            ->assertSee('From (YYYY-MM-DD)')
+            ->set('customFrom', '2026-08-01')
+            ->set('customTo', '2026-08-31')
+            ->tap('Apply')
+            ->assertSee('01 Aug 2026 - 31 Aug 2026')
+            ->assertSee('1h 0m')
+            ->assertSee('100.00');
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/earnings?from=2026-08-01&to=2026-08-31');
+    }
+
+    public function test_earning_custom_range_validates_before_calling_the_server(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => 1, 'from' => '2026-11-01', 'to' => '2026-11-30',
+            'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null, 'leave_days' => '0.0',
+        ])]);
+
+        Native::test(Earning::class)
+            ->tap('Custom range')
+            ->set('customFrom', '2026-08-31')
+            ->set('customTo', '2026-08-01')
+            ->tap('Apply')
+            ->assertSee('The start date must be before the end date.');
+
+        Http::assertSentCount(1); // only the initial monthly load, not the invalid custom range
     }
 
     // ─── Navigation chrome ──────────────────────────────────────────────────────

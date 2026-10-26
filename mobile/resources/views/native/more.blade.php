@@ -20,6 +20,7 @@
             </native:column>
         @endif
 
+        <native:button label="Earning" variant="secondary" @press="earning" />
         <native:button label="Holidays" variant="secondary" @press="holidays" />
         <native:button label="My companies" variant="secondary" @press="companies" />
         <native:button label="Sign out" variant="destructive" :loading="$busy" @press="signOut" />

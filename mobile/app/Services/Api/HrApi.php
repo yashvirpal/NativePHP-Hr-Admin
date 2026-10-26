@@ -117,6 +117,23 @@ class HrApi
         return $this->send('GET', 'attendance/manual', ['work_date' => $workDate]);
     }
 
+    /**
+     * Regular hours, overtime hours/amount and leave days taken, either over a trailing window
+     * (1, 3 or 6 months, including the current month) or over an explicit [$from, $to] custom
+     * range - for the "Earning" screen. A custom range takes precedence when given.
+     *
+     * @return array{months:?int, from:string, to:string, regular_minutes:int, overtime_minutes:int,
+     *     overtime_amount:?string, leave_days:string}
+     */
+    public function earnings(?int $months = null, ?string $from = null, ?string $to = null): array
+    {
+        return $this->send('GET', 'earnings', array_filter([
+            'months' => $months,
+            'from' => $from,
+            'to' => $to,
+        ], fn ($v) => $v !== null && $v !== ''));
+    }
+
     // ─── Leave ──────────────────────────────────────────────────────────────────
 
     public function leaveBalances(): array

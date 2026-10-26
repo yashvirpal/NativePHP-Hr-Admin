@@ -49,6 +49,11 @@ class More extends Screen
             ->values()->all();
     }
 
+    public function earning(): void
+    {
+        $this->navigate('/earning');
+    }
+
     public function holidays(): void
     {
         $this->navigate('/holidays');

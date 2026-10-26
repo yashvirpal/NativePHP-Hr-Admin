@@ -229,6 +229,44 @@ class EmployeePortalService
         ];
     }
 
+    /**
+     * Regular hours, overtime hours/amount and leave days taken, either over a trailing window
+     * of $months (including the current month) or over an explicit [$from, $to] custom range
+     * — for the mobile "Earning" screen. A custom range takes precedence when given.
+     *
+     * @return array{months:?int, from:string, to:string, regular_minutes:int, overtime_minutes:int,
+     *     overtime_amount:?string, leave_days:string}
+     */
+    public function earningsSummary(Employee $employee, ?int $months = null, ?string $from = null, ?string $to = null): array
+    {
+        if ($from !== null && $to !== null) {
+            $fromDate = Carbon::parse($from)->startOfDay();
+            $toDate = Carbon::parse($to)->endOfDay();
+            $months = null;
+        } else {
+            $toDate = Carbon::now()->endOfMonth();
+            $fromDate = Carbon::now()->startOfMonth()->subMonths(($months ?? 1) - 1);
+        }
+
+        $totals = $this->totalsFor($employee, $fromDate->toDateString(), $toDate->toDateString());
+
+        $leaveDays = LeaveRequest::where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $toDate)
+            ->whereDate('end_date', '>=', $fromDate)
+            ->sum('days');
+
+        return [
+            'months' => $months,
+            'from' => $fromDate->toDateString(),
+            'to' => $toDate->toDateString(),
+            'regular_minutes' => $totals['regular_minutes'],
+            'overtime_minutes' => $totals['overtime_minutes'],
+            'overtime_amount' => $totals['overtime_amount'],
+            'leave_days' => number_format((float) $leaveDays, 1, '.', ''),
+        ];
+    }
+
     /** @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string} */
     private function totalsFor(Employee $employee, string $from, string $to): array
     {

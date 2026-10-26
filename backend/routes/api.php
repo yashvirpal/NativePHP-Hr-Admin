@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\EarningsController;
 use App\Http\Controllers\Api\V1\HolidayController;
 use App\Http\Controllers\Api\V1\LeaveController;
 use App\Http\Controllers\Api\V1\OvertimeController;
@@ -43,6 +44,8 @@ Route::prefix('v1')->group(function () {
         Route::post('overtime-requests', [OvertimeController::class, 'store']);
         Route::get('overtime-rate', [OvertimeController::class, 'rate']);
         Route::put('overtime-rate', [OvertimeController::class, 'updateRate']);
+
+        Route::get('earnings', [EarningsController::class, 'index']);
 
         Route::apiResource('companies', CompanyController::class)->except('show');
     });

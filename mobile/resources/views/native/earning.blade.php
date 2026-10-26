@@ -1,0 +1,62 @@
+<native:column class="w-full h-full bg-theme-background">
+    <native:refreshable @refresh="refresh" class="w-full flex-1">
+        <native:column class="w-full p-4 gap-5">
+            @if ($error !== '')
+                <native:text class="text-sm text-theme-destructive">{{ $error }}</native:text>
+            @endif
+
+            <native:column class="w-full gap-2">
+                <native:text class="text-xs font-bold text-theme-on-surface-variant">Period</native:text>
+                <native:row class="w-full gap-2">
+                    <native:button class="flex-1" label="1 month" variant="{{ ! $useCustomRange && $months === 1 ? 'primary' : 'ghost' }}" size="sm" @press="selectPeriod(1)" />
+                    <native:button class="flex-1" label="3 months" variant="{{ ! $useCustomRange && $months === 3 ? 'primary' : 'ghost' }}" size="sm" @press="selectPeriod(3)" />
+                    <native:button class="flex-1" label="6 months" variant="{{ ! $useCustomRange && $months === 6 ? 'primary' : 'ghost' }}" size="sm" @press="selectPeriod(6)" />
+                </native:row>
+                <native:button label="Custom range" variant="{{ $useCustomRange || $showingCustomInputs ? 'primary' : 'ghost' }}" size="sm" @press="showCustomRange" />
+            </native:column>
+
+            @if ($showingCustomInputs)
+                <native:column class="w-full p-3 gap-3 rounded-2xl bg-theme-surface-variant/40">
+                    <native:outlined-text-input
+                        label="From (YYYY-MM-DD)"
+                        native:model="customFrom"
+                        :is-error="($fieldErrors['customFrom'] ?? '') !== ''"
+                        :supporting="$fieldErrors['customFrom'] ?? 'E.g. 2026-08-01.'"
+                    />
+                    <native:outlined-text-input
+                        label="To (YYYY-MM-DD)"
+                        native:model="customTo"
+                        :is-error="($fieldErrors['customTo'] ?? '') !== ''"
+                        :supporting="$fieldErrors['customTo'] ?? 'Cannot be after today.'"
+                    />
+                    <native:button label="Apply" variant="primary" size="sm" :loading="$busy" @press="applyCustomRange" />
+                </native:column>
+            @endif
+
+            @if ($periodLabel !== '')
+                <native:text class="text-sm text-theme-on-surface-variant">{{ $periodLabel }}</native:text>
+            @endif
+
+            <native:row class="w-full gap-3">
+                <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
+                    <native:text class="text-2xl font-bold text-theme-on-surface">{{ $regular }}</native:text>
+                    <native:text class="text-xs text-theme-on-surface-variant">Regular hours</native:text>
+                </native:column>
+                <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
+                    <native:text class="text-2xl font-bold text-theme-secondary">{{ $leaveDays }}</native:text>
+                    <native:text class="text-xs text-theme-on-surface-variant">Leave days</native:text>
+                </native:column>
+            </native:row>
+
+            <native:column class="w-full p-3 gap-2 rounded-2xl bg-theme-surface-variant/40">
+                <native:text class="text-xs font-bold text-theme-on-surface-variant">Overtime</native:text>
+                <native:row class="w-full items-end justify-between">
+                    <native:text class="text-2xl font-bold text-theme-accent">{{ $overtime }}</native:text>
+                    @if ($overtimeAmount !== null)
+                        <native:text class="text-lg font-bold text-theme-on-surface">{{ $overtimeAmount }}</native:text>
+                    @endif
+                </native:row>
+            </native:column>
+        </native:column>
+    </native:refreshable>
+</native:column>
