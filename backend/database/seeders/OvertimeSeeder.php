@@ -35,7 +35,7 @@ class OvertimeSeeder extends Seeder
                 [
                     'minutes' => $minutes,
                     'reason' => $reasons[$i % count($reasons)],
-                    'status' => ['pending', 'approved', 'approved', 'rejected'][$i % 4],
+                    'status' => 'approved',
                     'rate_per_hour' => $rate,
                     'amount' => $rate === null ? null : OvertimeService::amount($minutes, $rate),
                 ],

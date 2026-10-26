@@ -103,7 +103,8 @@ class Leave extends Screen
                 'status' => Format::status($r['status'] ?? null),
                 'statusKey' => (string) ($r['status'] ?? ''),
                 'reason' => (string) ($r['reason'] ?? ''),
-                'canCancel' => ($r['status'] ?? '') === 'pending',
+                // Leave is auto-approved on submit (no admin review step); 'approved' is the only cancellable state.
+                'canCancel' => ($r['status'] ?? '') === 'approved',
             ];
         })->all();
     }

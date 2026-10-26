@@ -37,7 +37,7 @@
                 <td>{{ $r->days }}</td><td class="muted">{{ \Illuminate\Support\Str::limit($r->reason, 32) ?: '-' }}</td>
                 <td><span class="badge {{ $r->status }}">{{ $r->status }}</span></td>
                 <td class="actions">
-                    @if ($r->status === 'pending')
+                    @if ($r->status === 'approved')
                         <form class="inline" method="post" action="{{ route('employee.leave.cancel', $r) }}">@csrf<button class="danger sm">Cancel</button></form>
                     @endif
                 </td>

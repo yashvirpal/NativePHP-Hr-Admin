@@ -174,8 +174,8 @@
                 ],
                 'Time' => [
                     ['admin.attendance.index', 'Attendance', 'clock', 'admin.attendance.*', null, 'attendance.view'],
-                    ['admin.leave-requests.index', 'Leave', 'calendar', 'admin.leave-requests.*', $pendingLeaveCount ?? 0, 'leave.manage'],
-                    ['admin.overtime-requests.index', 'Overtime', 'bolt', 'admin.overtime-requests.*', $pendingOvertimeCount ?? 0, 'overtime.manage'],
+                    ['admin.leave-requests.index', 'Leave', 'calendar', 'admin.leave-requests.*', null, 'leave.manage'],
+                    ['admin.overtime-requests.index', 'Overtime', 'bolt', 'admin.overtime-requests.*', null, 'overtime.manage'],
                     ['admin.holidays.index', 'Holidays', 'flag', 'admin.holidays.*', null, 'holidays.manage'],
                 ],
                 'Administration' => [
@@ -242,5 +242,17 @@
         </div>
     </div>
 @endif
+<script>
+    // Shared by every password field's eye-icon toggle button: onclick="togglePasswordVisibility('password', this)"
+    function togglePasswordVisibility(id, btn) {
+        var input = document.getElementById(id);
+        var showing = input.type === 'password';
+        input.type = showing ? 'text' : 'password';
+        btn.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+        btn.innerHTML = showing
+            ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 004.24 4.24"/><path d="M9.17 5.23A10.6 10.6 0 0112 5c6.5 0 10 7 10 7a18.6 18.6 0 01-3.17 4.1M6.6 6.6A18.4 18.4 0 002 12s3.5 7 10 7a10.4 10.4 0 004.1-.83"/></svg>'
+            : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
+</script>
 </body>
 </html>

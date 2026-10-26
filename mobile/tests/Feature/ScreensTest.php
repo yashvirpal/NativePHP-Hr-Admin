@@ -49,7 +49,6 @@ class ScreensTest extends TestCase
                 ['leave_type' => ['name' => 'Unpaid Leave'], 'allocated' => '0.0', 'used' => '0.0', 'remaining' => 0],
             ],
             'upcoming_holidays' => [['name' => 'Diwali', 'date' => '2026-11-08', 'is_optional' => false]],
-            'pending' => ['leave' => 1, 'overtime' => 0],
             'month' => ['days_present' => 7, 'days_late' => 2, 'worked_minutes' => 3330],
         ], $overrides);
     }
@@ -123,8 +122,7 @@ class ScreensTest extends TestCase
             ->assertSee('16 / 18')
             ->assertDontSee('Unpaid Leave')            // zero-allocation types are hidden
             ->assertSee('Diwali')
-            ->assertSee('55h 30m')
-            ->assertSee('1 leave, 0 overtime');
+            ->assertSee('55h 30m');
     }
 
     public function test_home_punch_in_calls_the_api_and_refreshes(): void
@@ -232,8 +230,8 @@ class ScreensTest extends TestCase
     private function leavePage(): array
     {
         return ['data' => [
-            ['id' => 5, 'leave_type' => ['name' => 'Annual Leave'], 'start_date' => '2026-11-02', 'end_date' => '2026-11-03', 'days' => '2.0', 'status' => 'pending', 'reason' => 'Trip'],
-            ['id' => 4, 'leave_type' => ['name' => 'Sick Leave'], 'start_date' => '2026-10-01', 'end_date' => '2026-10-01', 'days' => '1.0', 'status' => 'approved', 'reason' => null],
+            ['id' => 5, 'leave_type' => ['name' => 'Annual Leave'], 'start_date' => '2026-11-02', 'end_date' => '2026-11-03', 'days' => '2.0', 'status' => 'approved', 'reason' => 'Trip'],
+            ['id' => 4, 'leave_type' => ['name' => 'Sick Leave'], 'start_date' => '2026-10-01', 'end_date' => '2026-10-01', 'days' => '1.0', 'status' => 'cancelled', 'reason' => null],
         ]];
     }
 
@@ -248,10 +246,10 @@ class ScreensTest extends TestCase
         Native::test(Leave::class)
             ->assertSee('16 / 18')
             ->assertSee('02 Nov - 03 Nov 2026 - 2 day(s)')
-            ->assertSee('Pending')
-            ->assertSee('01 Oct 2026 - 1 day(s)')
             ->assertSee('Approved')
-            ->assertSee('Cancel request')          // only the pending one
+            ->assertSee('01 Oct 2026 - 1 day(s)')
+            ->assertSee('Cancelled')
+            ->assertSee('Cancel request')          // only the still-approved one
             ->tap('Request leave')
             ->assertNavigatedTo('/leave/new');
     }
@@ -332,7 +330,7 @@ class ScreensTest extends TestCase
             self::BASE.'/overtime-rate' => Http::response(['rate' => '200.00', 'effective_from' => '2026-11-05T09:00:00Z', 'history' => []]),
             self::BASE.'/overtime-requests*' => Http::response(['data' => [
                 // submitted AFTER the raise
-                ['work_date' => '2026-11-06', 'minutes' => 60, 'rate_per_hour' => '200.00', 'amount' => '200.00', 'reason' => null, 'status' => 'pending'],
+                ['work_date' => '2026-11-06', 'minutes' => 60, 'rate_per_hour' => '200.00', 'amount' => '200.00', 'reason' => null, 'status' => 'approved'],
                 // submitted BEFORE the raise: must keep showing 150, not 200
                 ['work_date' => '2026-10-30', 'minutes' => 120, 'rate_per_hour' => '150.00', 'amount' => '300.00', 'reason' => null, 'status' => 'approved'],
                 // submitted before any rate existed

@@ -33,6 +33,12 @@ class HrApi
         return $data['user'];
     }
 
+    /** Asks the backend to email a password reset link. @return array the server's confirmation message */
+    public function forgotPassword(string $email): array
+    {
+        return $this->send('POST', 'auth/forgot-password', ['email' => $email], authenticated: false);
+    }
+
     /** Revokes the token on the server (best effort) and forgets it locally. */
     public function logout(): void
     {

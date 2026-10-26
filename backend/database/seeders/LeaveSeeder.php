@@ -36,8 +36,8 @@ class LeaveSeeder extends Seeder
         $weekStart = Carbon::now()->startOfWeek();
 
         foreach ($employees as $i => $employee) {
-            $pastStatus = ['approved', 'approved', 'rejected', 'cancelled'][$i % 4];
-            $futureStatus = ['pending', 'pending', 'approved'][$i % 3];
+            $pastStatus = ['approved', 'approved', 'approved', 'cancelled'][$i % 4];
+            $futureStatus = 'approved';
 
             // Past request: 2–4 weeks ago, Mon–Thu start, 1–2 days. Future: 1–4 weeks ahead.
             $past = $weekStart->copy()->subWeeks(2 + $i % 3)->addDays($i % 4);

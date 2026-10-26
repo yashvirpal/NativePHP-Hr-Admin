@@ -44,12 +44,6 @@
                     </native:column>
                 </native:row>
 
-                @if ($pending['leave'] > 0 || $pending['overtime'] > 0)
-                    <native:text class="text-sm text-theme-on-surface-variant">
-                        Waiting for approval: {{ $pending['leave'] }} leave, {{ $pending['overtime'] }} overtime
-                    </native:text>
-                @endif
-
                 {{-- Leave balance --}}
                 @if (count($balances) > 0)
                     <native:text class="text-lg font-bold text-theme-on-surface">Leave balance</native:text>

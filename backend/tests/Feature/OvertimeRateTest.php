@@ -119,20 +119,22 @@ class OvertimeRateTest extends ApiTestCase
         $this->assertSame('300.00', OvertimeRequest::find($id)->amount);
     }
 
-    public function test_a_request_decided_after_a_rate_change_keeps_its_amount(): void
+    public function test_a_request_keeps_its_amount_after_a_later_rate_change(): void
     {
         $user = $this->makeUser();
         Sanctum::actingAs($user);
         $this->putJson('/api/v1/overtime-rate', ['hourly_rate' => 150]);
         $id = $this->request(60)['id'];
-        $this->putJson('/api/v1/overtime-rate', ['hourly_rate' => 999]);
-
-        $admin = $this->makeAdmin('manager');
-        $this->actingAs($admin, 'admin')->post("/admin/overtime-requests/{$id}/approve")->assertRedirect();
 
         $request = OvertimeRequest::find($id);
         $this->assertSame('approved', $request->status);
         $this->assertSame('150.00', $request->amount);
+
+        $this->putJson('/api/v1/overtime-rate', ['hourly_rate' => 999]);
+
+        $request = OvertimeRequest::find($id);
+        $this->assertSame('150.00', $request->amount);
+        $this->assertSame('150.00', $request->rate_per_hour);
     }
 
     public function test_requests_made_before_any_rate_was_set_stay_unpriced(): void

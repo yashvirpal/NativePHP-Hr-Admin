@@ -34,8 +34,6 @@
     <div class="card stat ok"><span>Days present (this month)</span><b>{{ $month['days_present'] }}</b></div>
     <div class="card stat warn"><span>Late arrivals</span><b>{{ $month['days_late'] }}</b></div>
     <div class="card stat accent"><span>Hours worked</span><b>{{ $h }}h {{ $m }}m</b></div>
-    <a class="card stat" href="{{ route('employee.leave.index') }}"><span>Pending leave</span><b>{{ $pending['leave'] }}</b></a>
-    <a class="card stat" href="{{ route('employee.overtime.index') }}"><span>Pending overtime</span><b>{{ $pending['overtime'] }}</b></a>
 </div>
 
 <div class="card">

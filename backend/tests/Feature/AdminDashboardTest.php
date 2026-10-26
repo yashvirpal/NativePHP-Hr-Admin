@@ -12,14 +12,6 @@ use App\Models\User;
 
 class AdminDashboardTest extends ApiTestCase
 {
-    private function pendingLeave(): LeaveRequest
-    {
-        return LeaveRequest::create([
-            'employee_id' => $this->makeUser()->employee->id, 'leave_type_id' => $this->leaveType()->id,
-            'start_date' => '2026-11-02', 'end_date' => '2026-11-02', 'days' => 1, 'status' => 'pending',
-        ]);
-    }
-
     public function test_guests_are_redirected_to_admin_login(): void
     {
         $this->get('/admin')->assertRedirect('/admin/login');
@@ -74,17 +66,6 @@ class AdminDashboardTest extends ApiTestCase
             '/admin/roles/3/edit'] as $path) {
             $this->get($path)->assertOk();
         }
-    }
-
-    public function test_manager_approves_leave_from_the_dashboard(): void
-    {
-        $leave = $this->pendingLeave();
-        $manager = $this->makeAdmin('manager');
-
-        $this->actingAs($manager, 'admin')->post("/admin/leave-requests/{$leave->id}/approve")->assertRedirect();
-
-        $this->assertSame('approved', $leave->fresh()->status);
-        $this->assertDatabaseHas('approvals', ['approvable_id' => $leave->id, 'approver_id' => $manager->id]);
     }
 
     public function test_admin_creates_an_employee_in_the_users_table(): void

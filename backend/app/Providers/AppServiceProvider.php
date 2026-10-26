@@ -4,11 +4,9 @@ namespace App\Providers;
 
 use App\Enums\Permission;
 use App\Models\Admin;
-use App\Models\LeaveRequest;
-use App\Models\OvertimeRequest;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,18 +30,11 @@ class AppServiceProvider extends ServiceProvider
         // Managing roles is super-admin only, so a role editor can never grant themselves more power.
         Gate::define('roles.manage', fn ($user) => $user instanceof Admin && $user->isSuperAdmin());
 
-        // Pending counts for the admin sidebar badges; only queried when a signed-in admin page renders.
-        View::composer('layouts.panel', function ($view) {
-            $admin = auth('admin')->user();
+        // This app uses hand-written route names, not Laravel's default 'password.reset'.
+        ResetPassword::createUrlUsing(function ($notifiable, string $token) {
+            $route = $notifiable instanceof Admin ? 'admin.password.reset' : 'employee.password.reset';
 
-            if (! $admin || ! request()->is('admin', 'admin/*')) {
-                return;
-            }
-
-            $view->with([
-                'pendingLeaveCount' => $admin->can('leave.manage') ? LeaveRequest::where('status', 'pending')->count() : 0,
-                'pendingOvertimeCount' => $admin->can('overtime.manage') ? OvertimeRequest::where('status', 'pending')->count() : 0,
-            ]);
+            return route($route, ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()]);
         });
     }
 }

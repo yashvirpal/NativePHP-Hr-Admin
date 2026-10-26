@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\Permission;
 use App\Models\Admin;
-use App\Models\LeaveRequest;
 use App\Models\Role;
 
 class RolesPermissionsTest extends ApiTestCase
@@ -72,22 +71,6 @@ class RolesPermissionsTest extends ApiTestCase
             'name' => 'X', 'email' => 'x@example.com', 'password' => 'password123', 'employee_code' => 'X1', 'status' => 'active',
         ])->assertForbidden();
         $this->assertDatabaseMissing('users', ['email' => 'x@example.com']);
-    }
-
-    public function test_deciding_leave_needs_leave_permission_not_overtime_permission(): void
-    {
-        $leave = LeaveRequest::create([
-            'employee_id' => $this->makeUser()->employee->id, 'leave_type_id' => $this->leaveType()->id,
-            'start_date' => '2026-11-02', 'end_date' => '2026-11-02', 'days' => 1, 'status' => 'pending',
-        ]);
-
-        $this->actingAs($this->makeAdmin($this->makeRole([Permission::OvertimeManage])), 'admin')
-            ->post("/admin/leave-requests/{$leave->id}/approve")->assertForbidden();
-        $this->assertSame('pending', $leave->fresh()->status);
-
-        $this->actingAs($this->makeAdmin($this->makeRole([Permission::LeaveManage])), 'admin')
-            ->post("/admin/leave-requests/{$leave->id}/approve")->assertRedirect();
-        $this->assertSame('approved', $leave->fresh()->status);
     }
 
     public function test_sidebar_only_lists_what_the_role_allows(): void

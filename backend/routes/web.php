@@ -16,6 +16,15 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::post('login', [Employee\AuthController::class, 'login'])->middleware(['guest:web', 'throttle:5,1']);
     Route::post('logout', [Employee\AuthController::class, 'logout'])->name('logout')->middleware('auth:web');
 
+    Route::middleware('guest:web')->prefix('password')->name('password.')->group(function () {
+        Route::get('forgot', [Employee\PasswordResetController::class, 'showForgot'])->name('request');
+        Route::post('forgot', [Employee\PasswordResetController::class, 'sendResetLink'])
+            ->middleware('throttle:5,1')->name('email');
+        Route::get('reset/{token}', [Employee\PasswordResetController::class, 'showReset'])->name('reset');
+        Route::post('reset', [Employee\PasswordResetController::class, 'reset'])
+            ->middleware('throttle:5,1')->name('update');
+    });
+
     Route::middleware('auth:web')->group(function () {
         Route::get('/', Employee\DashboardController::class)->name('dashboard');
         Route::post('punch-in', [Employee\AttendanceController::class, 'punchIn'])->name('punch-in');
@@ -44,6 +53,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('login', [Admin\AuthController::class, 'login'])->middleware(['guest:admin', 'throttle:5,1']);
     Route::post('logout', [Admin\AuthController::class, 'logout'])->name('logout')->middleware('auth:admin');
 
+    Route::middleware('guest:admin')->prefix('password')->name('password.')->group(function () {
+        Route::get('forgot', [Admin\PasswordResetController::class, 'showForgot'])->name('request');
+        Route::post('forgot', [Admin\PasswordResetController::class, 'sendResetLink'])
+            ->middleware('throttle:5,1')->name('email');
+        Route::get('reset/{token}', [Admin\PasswordResetController::class, 'showReset'])->name('reset');
+        Route::post('reset', [Admin\PasswordResetController::class, 'reset'])
+            ->middleware('throttle:5,1')->name('update');
+    });
+
     Route::middleware('auth:admin')->group(function () {
         // Every signed-in admin gets the dashboard; everything else is gated by a permission from their role.
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
@@ -64,14 +82,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::middleware('can:leave.manage')->group(function () {
             Route::get('leave-requests', [Admin\LeaveRequestController::class, 'index'])->name('leave-requests.index');
-            Route::post('leave-requests/{leaveRequest}/{decision}', [Admin\LeaveRequestController::class, 'decide'])
-                ->whereIn('decision', ['approve', 'reject'])->name('leave-requests.decide');
         });
 
         Route::middleware('can:overtime.manage')->group(function () {
             Route::get('overtime-requests', [Admin\OvertimeRequestController::class, 'index'])->name('overtime-requests.index');
-            Route::post('overtime-requests/{overtimeRequest}/{decision}', [Admin\OvertimeRequestController::class, 'decide'])
-                ->whereIn('decision', ['approve', 'reject'])->name('overtime-requests.decide');
         });
 
         // Admin accounts, and (super admin only) the roles that define what they can do.

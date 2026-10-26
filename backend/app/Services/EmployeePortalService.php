@@ -48,10 +48,6 @@ class EmployeePortalService
             'is_punched_in' => $this->isPunchedIn($today),
             'balances' => $this->leaveBalances($employee),
             'upcoming_holidays' => Holiday::whereDate('date', '>=', Carbon::today())->orderBy('date')->limit(3)->get(),
-            'pending' => [
-                'leave' => LeaveRequest::where('employee_id', $employee->id)->where('status', 'pending')->count(),
-                'overtime' => OvertimeRequest::where('employee_id', $employee->id)->where('status', 'pending')->count(),
-            ],
             'month' => [
                 'days_present' => $month->whereIn('status', ['present', 'late'])->count(),
                 'days_late' => $month->where('status', 'late')->count(),

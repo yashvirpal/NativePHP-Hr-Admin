@@ -4,18 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\OvertimeRequest;
-use App\Services\OvertimeService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class OvertimeRequestController extends Controller
 {
-    public function __construct(private OvertimeService $overtime) {}
-
     public function index(Request $request): View
     {
-        $status = $request->query('status', 'pending');
+        $status = $request->query('status', 'all');
 
         return view('admin.overtime.index', [
             'status' => $status,
@@ -25,14 +21,5 @@ class OvertimeRequestController extends Controller
                 ->paginate(25)
                 ->withQueryString(),
         ]);
-    }
-
-    public function decide(Request $request, OvertimeRequest $overtimeRequest, string $decision): RedirectResponse
-    {
-        $remarks = $request->validate(['remarks' => ['nullable', 'string', 'max:500']])['remarks'] ?? null;
-
-        $this->overtime->decide($overtimeRequest, $request->user(), $decision === 'approve' ? 'approved' : 'rejected', $remarks);
-
-        return back()->with('status', 'Overtime request '.($decision === 'approve' ? 'approved' : 'rejected').'.');
     }
 }

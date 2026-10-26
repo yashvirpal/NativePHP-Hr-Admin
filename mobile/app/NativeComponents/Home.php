@@ -32,9 +32,6 @@ class Home extends Screen
     /** @var list<array{name: string, date: string, optional: bool}> */
     public array $holidays = [];
 
-    /** @var array{leave: int, overtime: int} */
-    public array $pending = ['leave' => 0, 'overtime' => 0];
-
     public function navTitle(): string
     {
         return 'Home';
@@ -127,11 +124,6 @@ class Home extends Screen
             'date' => Format::date($h['date'] ?? null, 'D, d M'),
             'optional' => (bool) ($h['is_optional'] ?? false),
         ])->all();
-
-        $this->pending = [
-            'leave' => (int) ($data['pending']['leave'] ?? 0),
-            'overtime' => (int) ($data['pending']['overtime'] ?? 0),
-        ];
     }
 
     public function render(): View

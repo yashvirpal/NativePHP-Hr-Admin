@@ -4,6 +4,7 @@ use App\NativeComponents\Attendance;
 use App\NativeComponents\Boot;
 use App\NativeComponents\Companies;
 use App\NativeComponents\CompanyForm;
+use App\NativeComponents\ForgotPassword;
 use App\NativeComponents\Holidays;
 use App\NativeComponents\Home;
 use App\NativeComponents\Layouts\MainTabsLayout;
@@ -37,6 +38,7 @@ Route::nativeGroup(MainTabsLayout::class, function () {
 
 // Screens pushed on top of a tab (with a back button, no tab bar).
 Route::nativeGroup(StackLayout::class, function () {
+    Route::native('/forgot-password', ForgotPassword::class);
     Route::native('/leave/new', LeaveCreate::class);
     Route::native('/overtime/new', OvertimeCreate::class);
     Route::native('/overtime/rate', OvertimeRate::class);

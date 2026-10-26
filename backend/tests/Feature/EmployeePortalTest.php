@@ -97,11 +97,11 @@ class EmployeePortalTest extends ApiTestCase
         $owner = $this->makeUser();
         $leave = LeaveRequest::create([
             'employee_id' => $owner->employee->id, 'leave_type_id' => $this->leaveType()->id,
-            'start_date' => '2026-11-03', 'end_date' => '2026-11-03', 'days' => 1, 'status' => 'pending',
+            'start_date' => '2026-11-03', 'end_date' => '2026-11-03', 'days' => 1, 'status' => 'approved',
         ]);
 
         $this->actingAs($this->makeUser(), 'web')->post("/employee/leave/{$leave->id}/cancel")->assertForbidden();
-        $this->assertSame('pending', $leave->fresh()->status);
+        $this->assertSame('approved', $leave->fresh()->status);
     }
 
     public function test_employee_manages_their_companies(): void

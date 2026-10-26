@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Admin;
 use App\Models\Employee;
 use App\Models\OvertimeRate;
 use App\Models\OvertimeRequest;
@@ -10,8 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class OvertimeService
 {
-    public function __construct(private ApprovalService $approvals) {}
-
     // ─── Rate (per hour) ────────────────────────────────────────────────────────
 
     /** The rate in force right now, or null if the employee never set one. */
@@ -69,19 +66,8 @@ class OvertimeService
             'rate_per_hour' => $rate,
             'amount' => $rate === null ? null : self::amount($minutes, $rate),
             'reason' => $reason,
-            'status' => 'pending',
+            'status' => 'approved',
         ]);
-    }
-
-    public function decide(OvertimeRequest $request, Admin $approver, string $decision, ?string $remarks = null): OvertimeRequest
-    {
-        return DB::transaction(function () use ($request, $approver, $decision, $remarks) {
-            $request = OvertimeRequest::with('employee')->lockForUpdate()->findOrFail($request->id);
-
-            $this->approvals->decide($request, $approver, $decision, $remarks);
-
-            return $request->fresh(['employee.user', 'approvals']);
-        });
     }
 
     /** minutes at an hourly rate, to 2 decimals (e.g. 90 min at 150.00/h = 225.00). */

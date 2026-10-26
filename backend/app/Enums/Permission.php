@@ -26,8 +26,8 @@ enum Permission: string
             self::EmployeesManage => 'Create and edit employees',
             self::DepartmentsManage => 'Manage departments',
             self::AttendanceView => 'View attendance',
-            self::LeaveManage => 'Review and decide leave requests',
-            self::OvertimeManage => 'Review and decide overtime requests',
+            self::LeaveManage => 'View leave requests',
+            self::OvertimeManage => 'View overtime requests',
             self::HolidaysManage => 'Manage holidays',
             self::AdminsManage => 'Manage admin accounts',
         };
