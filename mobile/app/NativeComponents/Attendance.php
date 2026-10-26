@@ -36,9 +36,6 @@ class Attendance extends Screen
     /** @var array{regular: string, overtime: string, overtimeAmount: ?string} */
     public array $monthTotals = ['regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
 
-    /** @var array{regular: string, overtime: string, overtimeAmount: ?string} */
-    public array $yearTotals = ['regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
-
     public function selectDay(string $date): void
     {
         $this->selectedDay = collect($this->rows)->firstWhere('date', $date);
@@ -158,7 +155,6 @@ class Attendance extends Screen
 
         if ($totals !== null) {
             $this->monthTotals = $this->formatTotals($totals['month'] ?? []);
-            $this->yearTotals = $this->formatTotals($totals['year'] ?? []);
         }
     }
 

@@ -80,6 +80,19 @@ class EmployeePortalTest extends ApiTestCase
         $response->assertSee('Overtime (this month)')->assertSee('1h 0m')->assertSee('200.00');
     }
 
+    public function test_dashboard_shows_this_years_totals_separately_from_this_month(): void
+    {
+        $user = $this->makeUser();
+        $this->actingAs($user, 'web');
+        $this->put('/employee/overtime/rate', ['hourly_rate' => '200']);
+        $this->post('/employee/overtime', ['work_date' => '2026-11-02', 'minutes' => 60]); // this month: 200.00
+        $this->post('/employee/overtime', ['work_date' => '2026-05-10', 'minutes' => 60]); // earlier this year: 200.00
+
+        $response = $this->get('/employee')->assertOk();
+
+        $response->assertSee('Overtime (this year)')->assertSee('2h 0m')->assertSee('400.00');
+    }
+
     public function test_dashboard_shows_only_annual_leave_with_days_used(): void
     {
         $user = $this->makeUser();

@@ -51,6 +51,21 @@
                     </native:row>
                 </native:column>
 
+                {{-- This year --}}
+                <native:text class="text-lg font-bold text-theme-on-surface">This year</native:text>
+                <native:column class="w-full p-3 gap-2 rounded-2xl bg-theme-surface-variant/40">
+                    <native:row class="w-full items-center justify-between">
+                        <native:text class="text-base text-theme-on-surface">Regular</native:text>
+                        <native:text class="text-base font-bold text-theme-on-surface">{{ $year['regular'] }}</native:text>
+                    </native:row>
+                    <native:row class="w-full items-center justify-between">
+                        <native:text class="text-base text-theme-on-surface">Overtime</native:text>
+                        <native:text class="text-base font-bold text-theme-primary">
+                            {{ $year['overtime'] }}@if ($year['overtimeAmount'] !== null) - {{ $year['overtimeAmount'] }} @endif
+                        </native:text>
+                    </native:row>
+                </native:column>
+
                 {{-- Leave balance --}}
                 @if (count($balances) > 0)
                     <native:text class="text-lg font-bold text-theme-on-surface">Leave balance</native:text>

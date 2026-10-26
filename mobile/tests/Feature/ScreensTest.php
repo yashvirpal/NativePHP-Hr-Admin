@@ -137,7 +137,7 @@ class ScreensTest extends TestCase
             self::BASE.'/dashboard' => Http::response($this->dashboard()),
             self::BASE.'/attendance/totals*' => Http::response([
                 'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00'],
-                'year' => ['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null],
+                'year' => ['regular_minutes' => 6005, 'overtime_minutes' => 600, 'overtime_amount' => '2000.00'],
                 'lifetime' => ['overtime_minutes' => 900, 'overtime_amount' => '3000.00'],
             ]),
         ]);
@@ -153,11 +153,16 @@ class ScreensTest extends TestCase
             ->assertSee('2 used')
             ->assertDontSee('Unpaid Leave')            // zero-allocation types are hidden
             ->assertSee('Diwali')
+            ->assertSee('This month')
             ->assertSee('2h 5m')
             ->assertSee('1h 0m')
             ->assertSee('200.00')
             ->assertSee('Overtime total (all-time)')
-            ->assertSee('3000.00');
+            ->assertSee('3000.00')
+            ->assertSee('This year')
+            ->assertSee('100h 5m')
+            ->assertSee('10h 0m')
+            ->assertSee('2000.00');
     }
 
     public function test_an_expired_session_sends_the_user_to_login(): void
@@ -241,7 +246,7 @@ class ScreensTest extends TestCase
             ->assertSee('Logged manually (no punch)');
     }
 
-    public function test_attendance_shows_month_and_year_totals(): void
+    public function test_attendance_shows_only_this_months_totals(): void
     {
         $this->signIn();
         Http::fake([
@@ -257,10 +262,8 @@ class ScreensTest extends TestCase
             ->assertSee('2h 5m')
             ->assertSee('1h 0m')
             ->assertSee('200.00')
-            ->assertSee('This year')
-            ->assertSee('100h 5m')
-            ->assertSee('10h 0m')
-            ->assertSee('2000.00');
+            ->assertDontSee('This year')
+            ->assertDontSee('100h 5m');
     }
 
     public function test_tapping_log_hours_navigates_to_the_combined_entry_screen_prefilled(): void

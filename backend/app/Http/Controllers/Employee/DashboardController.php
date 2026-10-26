@@ -13,6 +13,7 @@ class DashboardController extends PortalController
         $data = $this->portal->dashboard($employee);
         $totals = $this->portal->attendanceTotals($employee);
         $data['totals'] = $totals['month'];
+        $data['yearTotals'] = $totals['year'];
         $data['lifetimeOvertime'] = $totals['lifetime'];
 
         return view('employee.dashboard', $data);

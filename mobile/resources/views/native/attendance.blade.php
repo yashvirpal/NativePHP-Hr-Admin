@@ -16,8 +16,8 @@
         <native:button label="Next" variant="ghost" size="sm" :disabled="! $canGoNext" @press="nextMonth" />
     </native:row>
 
-    <native:row class="w-full px-4 pb-2 gap-3">
-        <native:column class="flex-1 p-3 rounded-xl bg-theme-surface-variant/40 gap-1">
+    <native:column class="w-full px-4 pb-2">
+        <native:column class="w-full p-3 rounded-xl bg-theme-surface-variant/40 gap-1">
             <native:text class="text-xs font-bold text-theme-on-surface-variant">This month</native:text>
             <native:row class="w-full items-center justify-between">
                 <native:text class="text-sm text-theme-on-surface">Regular</native:text>
@@ -30,20 +30,7 @@
                 </native:text>
             </native:row>
         </native:column>
-        <native:column class="flex-1 p-3 rounded-xl bg-theme-surface-variant/40 gap-1">
-            <native:text class="text-xs font-bold text-theme-on-surface-variant">This year</native:text>
-            <native:row class="w-full items-center justify-between">
-                <native:text class="text-sm text-theme-on-surface">Regular</native:text>
-                <native:text class="text-sm font-bold text-theme-on-surface">{{ $yearTotals['regular'] }}</native:text>
-            </native:row>
-            <native:row class="w-full items-center justify-between">
-                <native:text class="text-sm text-theme-on-surface">Overtime</native:text>
-                <native:text class="text-sm font-bold text-theme-primary">
-                    {{ $yearTotals['overtime'] }}@if ($yearTotals['overtimeAmount'] !== null) - {{ $yearTotals['overtimeAmount'] }} @endif
-                </native:text>
-            </native:row>
-        </native:column>
-    </native:row>
+    </native:column>
 
     <native:refreshable @refresh="refresh" class="w-full flex-1">
         <native:column class="w-full px-4 pb-4 gap-3">

@@ -35,6 +35,12 @@
         <b>{{ $lifetimeOvertime['overtime_amount'] ?? '0.00' }}</b>
         <div class="muted">{{ intdiv($lifetimeOvertime['overtime_minutes'], 60) }}h {{ $lifetimeOvertime['overtime_minutes'] % 60 }}m</div>
     </div>
+    <div class="card stat accent"><span>Regular (this year)</span><b>{{ intdiv($yearTotals['regular_minutes'], 60) }}h {{ $yearTotals['regular_minutes'] % 60 }}m</b></div>
+    <div class="card stat accent">
+        <span>Overtime (this year)</span>
+        <b>{{ intdiv($yearTotals['overtime_minutes'], 60) }}h {{ $yearTotals['overtime_minutes'] % 60 }}m</b>
+        @if ($yearTotals['overtime_amount'] !== null) <div class="muted">{{ $yearTotals['overtime_amount'] }}</div> @endif
+    </div>
 </div>
 
 <div class="card">

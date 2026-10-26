@@ -25,6 +25,9 @@ class Home extends Screen
     /** @var array{present: int, late: int, regular: string, overtime: string, overtimeAmount: ?string} */
     public array $month = ['present' => 0, 'late' => 0, 'regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
 
+    /** @var array{regular: string, overtime: string, overtimeAmount: ?string} */
+    public array $year = ['regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
+
     /** @var list<array{name: string, remaining: string, allocated: string, used: string}> */
     public array $balances = [];
 
@@ -87,6 +90,7 @@ class Home extends Screen
         $month = $data['month'] ?? [];
         $totals = $this->call(fn ($api) => $api->attendanceTotals());
         $monthTotals = $totals['month'] ?? [];
+        $yearTotals = $totals['year'] ?? [];
         $lifetimeTotals = $totals['lifetime'] ?? [];
 
         $this->month = [
@@ -95,6 +99,12 @@ class Home extends Screen
             'regular' => Format::minutes($monthTotals['regular_minutes'] ?? 0),
             'overtime' => Format::minutes($monthTotals['overtime_minutes'] ?? 0),
             'overtimeAmount' => $monthTotals['overtime_amount'] ?? null,
+        ];
+
+        $this->year = [
+            'regular' => Format::minutes($yearTotals['regular_minutes'] ?? 0),
+            'overtime' => Format::minutes($yearTotals['overtime_minutes'] ?? 0),
+            'overtimeAmount' => $yearTotals['overtime_amount'] ?? null,
         ];
 
         $this->lifetimeOvertime = [
