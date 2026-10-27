@@ -3,6 +3,7 @@
 namespace App\NativeComponents;
 
 use App\Support\Format;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class Overtime extends Screen
@@ -10,7 +11,18 @@ class Overtime extends Screen
     /** Current hourly rate, formatted ("150.00"), or '' when none is set. */
     public string $rate = '';
 
-    /** @var list<array{date: string, duration: string, priced: string, reason: string, status: string, statusKey: string}> */
+    /** Y-m - which month's requests are showing, browsed with Prev/Next rather than one long list. */
+    public string $month = '';
+
+    public string $monthLabel = '';
+
+    public bool $canGoNext = false;
+
+    public string $totalDuration = '-';
+
+    public ?string $totalAmount = null;
+
+    /** @var list<array{date: string, duration: string, amount: ?string, ratePerHour: ?string, reason: string}> */
     public array $requests = [];
 
     public function navTitle(): string
@@ -25,6 +37,7 @@ class Overtime extends Screen
 
     public function mount(): void
     {
+        $this->month = now()->format('Y-m');
         $this->load();
     }
 
@@ -38,6 +51,22 @@ class Overtime extends Screen
         $this->load();
     }
 
+    public function previousMonth(): void
+    {
+        $this->month = Carbon::createFromFormat('Y-m', $this->month)->subMonth()->format('Y-m');
+        $this->load();
+    }
+
+    public function nextMonth(): void
+    {
+        if (! $this->canGoNext) {
+            return;
+        }
+
+        $this->month = Carbon::createFromFormat('Y-m', $this->month)->addMonth()->format('Y-m');
+        $this->load();
+    }
+
     public function changeRate(): void
     {
         $this->navigate('/overtime/rate');
@@ -45,32 +74,44 @@ class Overtime extends Screen
 
     private function load(): void
     {
+        $start = Carbon::createFromFormat('Y-m', $this->month)->startOfMonth();
+        $this->monthLabel = $start->format('F Y');
+        $this->canGoNext = $start->lt(now()->startOfMonth());
+
         $rate = $this->call(fn ($api) => $api->overtimeRate());
         if ($rate === null) {
             return;
         }
         $this->rate = ($rate['rate'] ?? null) !== null ? Format::money($rate['rate']) : '';
 
-        $page = $this->call(fn ($api) => $api->overtimeRequests());
+        $page = $this->call(fn ($api) => $api->overtimeRequests($this->month));
         if ($page === null) {
             return;
         }
 
-        $this->requests = collect($page['data'] ?? [])->map(function ($r) {
+        $rows = collect($page['data'] ?? [])->map(fn ($r) => [
+            'date' => Format::date($r['work_date'] ?? null, 'D, d M Y'),
+            'minutes' => (int) ($r['minutes'] ?? 0),
+            'duration' => Format::minutes($r['minutes'] ?? 0),
+            'amountValue' => ($r['amount'] ?? null) !== null ? (float) $r['amount'] : null,
             // Each request shows the rate IT was submitted with, not the employee's current rate.
-            $priced = ($r['amount'] ?? null) !== null
-                ? Format::money($r['amount']).' ('.Format::money($r['rate_per_hour']).' per hour)'
-                : 'No rate set';
+            'amount' => ($r['amount'] ?? null) !== null ? Format::money($r['amount']) : null,
+            'ratePerHour' => ($r['rate_per_hour'] ?? null) !== null ? Format::money($r['rate_per_hour']).'/hr' : null,
+            'reason' => (string) ($r['reason'] ?? ''),
+        ]);
 
-            return [
-                'date' => Format::date($r['work_date'] ?? null, 'D, d M Y'),
-                'duration' => Format::minutes($r['minutes'] ?? 0),
-                'priced' => $priced,
-                'reason' => (string) ($r['reason'] ?? ''),
-                'status' => Format::status($r['status'] ?? null),
-                'statusKey' => (string) ($r['status'] ?? ''),
-            ];
-        })->all();
+        $this->totalDuration = Format::minutes($rows->sum('minutes'));
+        $this->totalAmount = $rows->contains(fn ($r) => $r['amountValue'] !== null)
+            ? Format::money($rows->sum('amountValue'))
+            : null;
+
+        $this->requests = $rows->map(fn ($r) => [
+            'date' => $r['date'],
+            'duration' => $r['duration'],
+            'amount' => $r['amount'],
+            'ratePerHour' => $r['ratePerHour'],
+            'reason' => $r['reason'],
+        ])->values()->all();
     }
 
     public function render(): View

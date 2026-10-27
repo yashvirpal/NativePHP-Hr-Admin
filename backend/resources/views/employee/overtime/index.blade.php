@@ -46,9 +46,9 @@
 </div>
 
 <div class="card">
-    <h2>My requests</h2>
+    <h2>My overtime</h2>
     <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Duration</th><th>Rate / hour</th><th>Amount</th><th>Reason</th><th>Status</th></tr></thead>
+        <thead><tr><th>Date</th><th>Duration</th><th>Rate / hour</th><th>Amount</th><th>Reason</th></tr></thead>
         <tbody>
         @forelse ($requests as $r)
             <tr>
@@ -57,10 +57,9 @@
                 <td>{{ $r->rate_per_hour !== null ? number_format((float) $r->rate_per_hour, 2) : '-' }}</td>
                 <td><b>{{ $r->amount !== null ? number_format((float) $r->amount, 2) : '-' }}</b></td>
                 <td class="muted">{{ \Illuminate\Support\Str::limit($r->reason, 40) ?: '-' }}</td>
-                <td><span class="badge {{ $r->status }}">{{ $r->status }}</span></td>
             </tr>
         @empty
-            <tr><td colspan="6" class="empty">No overtime requests yet.</td></tr>
+            <tr><td colspan="5" class="empty">No overtime requests yet.</td></tr>
         @endforelse
         </tbody>
     </table></div>

@@ -373,9 +373,19 @@ class EmployeePortalService
 
     // ─── Overtime ───────────────────────────────────────────────────────────────
 
-    public function overtimeRequests(Employee $employee): LengthAwarePaginator
+    /** Unfiltered (web): paginated 15/page, newest first. Scoped to $month (mobile): one page, up to a full month. */
+    public function overtimeRequests(Employee $employee, ?string $month = null): LengthAwarePaginator
     {
-        return OvertimeRequest::where('employee_id', $employee->id)->orderByDesc('work_date')->paginate(15);
+        $query = OvertimeRequest::where('employee_id', $employee->id)->orderByDesc('work_date');
+
+        if ($month === null) {
+            return $query->paginate(15);
+        }
+
+        $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $query->whereBetween('work_date', [$start->toDateString(), $start->copy()->endOfMonth()->toDateString()]);
+
+        return $query->paginate(31);
     }
 
     public function requestOvertime(Employee $employee, string $workDate, int $minutes, ?string $reason = null): OvertimeRequest

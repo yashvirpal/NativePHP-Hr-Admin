@@ -538,41 +538,79 @@ class ScreensTest extends TestCase
 
     // ─── Overtime ───────────────────────────────────────────────────────────────
 
-    public function test_overtime_lists_requests(): void
+    public function test_overtime_lists_requests_for_the_current_month(): void
     {
         $this->signIn();
+        $month = now()->format('Y-m');
         Http::fake(['*' => Http::response(['data' => [
-            ['work_date' => '2026-10-10', 'minutes' => 90, 'reason' => 'Release', 'status' => 'approved'],
+            ['work_date' => $month.'-10', 'minutes' => 90, 'reason' => 'Release', 'status' => 'approved'],
         ]])]);
 
         Native::test(Overtime::class)
-            ->assertSee('Sat, 10 Oct 2026')
+            ->assertSee(now()->format('F Y'))
             ->assertSee('1h 30m')
             ->assertSee('Release')
-            ->assertSee('Approved');
+            ->assertDontSee('Approved');
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), "overtime-requests?month={$month}"));
+    }
+
+    public function test_overtime_browses_between_months(): void
+    {
+        $this->signIn();
+        $previous = now()->subMonthNoOverflow()->format('Y-m');
+
+        Http::fake(function (Request $r) use ($previous) {
+            if (str_contains($r->url(), 'overtime-rate')) {
+                return Http::response(['rate' => null, 'effective_from' => null, 'history' => []]);
+            }
+
+            if (str_contains($r->url(), "month={$previous}")) {
+                return Http::response(['data' => [
+                    ['work_date' => $previous.'-05', 'minutes' => 60, 'rate_per_hour' => null, 'amount' => null, 'reason' => 'Backlog', 'status' => 'approved'],
+                ]]);
+            }
+
+            return Http::response(['data' => []]);
+        });
+
+        Native::test(Overtime::class)
+            ->assertSee(now()->format('F Y'))
+            ->assertSee('No overtime logged')
+            ->tap('Prev')
+            ->assertSee(now()->subMonthNoOverflow()->format('F Y'))
+            ->assertSee('Backlog');
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), "month={$previous}"));
     }
 
     public function test_overtime_shows_the_current_rate_and_each_requests_own_rate(): void
     {
         $this->signIn();
+        $month = now()->format('Y-m');
         Http::fake([
             self::BASE.'/overtime-rate' => Http::response(['rate' => '200.00', 'effective_from' => '2026-11-05T09:00:00Z', 'history' => []]),
             self::BASE.'/overtime-requests*' => Http::response(['data' => [
                 // submitted AFTER the raise
-                ['work_date' => '2026-11-06', 'minutes' => 60, 'rate_per_hour' => '200.00', 'amount' => '200.00', 'reason' => null, 'status' => 'approved'],
+                ['work_date' => $month.'-20', 'minutes' => 60, 'rate_per_hour' => '200.00', 'amount' => '200.00', 'reason' => null, 'status' => 'approved'],
                 // submitted BEFORE the raise: must keep showing 150, not 200
-                ['work_date' => '2026-10-30', 'minutes' => 120, 'rate_per_hour' => '150.00', 'amount' => '300.00', 'reason' => null, 'status' => 'approved'],
+                ['work_date' => $month.'-10', 'minutes' => 120, 'rate_per_hour' => '150.00', 'amount' => '300.00', 'reason' => null, 'status' => 'approved'],
                 // submitted before any rate existed
-                ['work_date' => '2026-10-01', 'minutes' => 30, 'rate_per_hour' => null, 'amount' => null, 'reason' => null, 'status' => 'approved'],
+                ['work_date' => $month.'-05', 'minutes' => 30, 'rate_per_hour' => null, 'amount' => null, 'reason' => null, 'status' => 'approved'],
             ]]),
         ]);
 
         Native::test(Overtime::class)
-            ->assertSee('Your hourly overtime rate')
-            ->assertSee('200.00 per hour')
-            ->assertSee('1h 0m - 200.00 (200.00 per hour)')
-            ->assertSee('2h 0m - 300.00 (150.00 per hour)')
-            ->assertSee('0h 30m - No rate set')
+            ->assertSee('Your hourly rate')
+            ->assertSee('200.00 / hr')
+            ->assertSee('My overtime')
+            ->assertSee('3h 30m - 500.00') // running total: 60+120+30 min, 200+300+0 (unpriced request contributes nothing)
+            ->assertSee('1h 0m')
+            ->assertSee('200.00/hr')
+            ->assertSee('2h 0m')
+            ->assertSee('150.00/hr')
+            ->assertSee('0h 30m')
+            ->assertSee('No rate set')
             ->assertSee('Change rate')
             ->tap('Change rate')
             ->assertNavigatedTo('/overtime/rate');

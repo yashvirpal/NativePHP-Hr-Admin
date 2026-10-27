@@ -197,6 +197,31 @@ class OvertimeRateTest extends ApiTestCase
         $this->getJson('/api/v1/overtime-rate')->assertJsonPath('rate', '500.00');
     }
 
+    public function test_overtime_requests_can_be_scoped_to_a_month(): void
+    {
+        Sanctum::actingAs($this->makeUser());
+
+        $this->request(60, '2026-11-02'); // in
+        $this->request(90, '2026-10-15'); // out
+
+        $list = collect($this->getJson('/api/v1/overtime-requests?month=2026-11')->assertOk()->json('data'));
+
+        $this->assertCount(1, $list);
+        $this->assertSame('2026-11-02', $list->first()['work_date']);
+    }
+
+    public function test_overtime_requests_without_a_month_returns_everything(): void
+    {
+        Sanctum::actingAs($this->makeUser());
+
+        $this->request(60, '2026-11-02');
+        $this->request(90, '2026-10-15');
+
+        $list = $this->getJson('/api/v1/overtime-requests')->assertOk()->json('data');
+
+        $this->assertCount(2, $list);
+    }
+
     public function test_the_rate_endpoints_need_a_signed_in_employee(): void
     {
         $this->getJson('/api/v1/overtime-rate')->assertUnauthorized();

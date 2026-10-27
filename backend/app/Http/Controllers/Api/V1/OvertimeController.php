@@ -14,7 +14,9 @@ class OvertimeController extends ApiController
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json($this->portal->overtimeRequests($this->employee($request)));
+        $data = $request->validate(['month' => ['nullable', 'date_format:Y-m']]);
+
+        return response()->json($this->portal->overtimeRequests($this->employee($request), $data['month'] ?? null));
     }
 
     public function store(StoreOvertimeRequest $request): JsonResponse

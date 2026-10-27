@@ -159,9 +159,10 @@ class HrApi
         return $this->send('GET', 'holidays', array_filter(['year' => $year]));
     }
 
-    public function overtimeRequests(int $page = 1): array
+    /** Omitting $month returns everything (unused by this app's screens); scoped to one month otherwise. */
+    public function overtimeRequests(?string $month = null): array
     {
-        return $this->send('GET', 'overtime-requests', ['page' => $page]);
+        return $this->send('GET', 'overtime-requests', array_filter(['month' => $month]));
     }
 
     public function requestOvertime(string $workDate, int $minutes, ?string $reason = null): array
