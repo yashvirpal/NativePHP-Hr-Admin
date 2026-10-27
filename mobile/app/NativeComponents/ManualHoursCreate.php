@@ -10,6 +10,10 @@ use Native\Mobile\Facades\Dialog;
  * independent of the punch clock (not reconciled or merged with attendance_records). Tapping
  * the same day again prefills whatever is already logged; only the field(s) that actually
  * change get resubmitted.
+ *
+ * Also lets the employee mark this day (or a range starting here) as leave — only offered for
+ * today or a future day, since leave can't be backdated, and not at all once the day is already
+ * on leave (shown read-only instead, to avoid the server's overlap rejection).
  */
 class ManualHoursCreate extends Screen
 {
@@ -27,6 +31,18 @@ class ManualHoursCreate extends Screen
 
     public int $initialOvertimeMinutes = 0;
 
+    public bool $onLeave = false;
+
+    public ?string $leaveTypeName = null;
+
+    /** Whether today/this day can still be requested as leave (false for a day already in the past). */
+    public bool $canMarkLeave = false;
+
+    public bool $markLeave = false;
+
+    /** Defaults to $workDate; editable to mark a range starting here as leave. */
+    public string $leaveEndDate = '';
+
     public function navTitle(): string
     {
         return 'Log hours';
@@ -35,6 +51,8 @@ class ManualHoursCreate extends Screen
     public function mount(): void
     {
         $this->workDate = (string) ($this->data('date') ?? now()->toDateString());
+        $this->canMarkLeave = $this->workDate >= now()->toDateString();
+        $this->leaveEndDate = $this->workDate;
 
         $day = $this->call(fn ($api) => $api->dayEntry($this->workDate));
 
@@ -46,16 +64,30 @@ class ManualHoursCreate extends Screen
         $this->initialOvertimeMinutes = (int) ($day['overtime_minutes'] ?? 0);
         $this->regularHours = $this->initialRegularMinutes > 0 ? self::hoursLabel($this->initialRegularMinutes) : '';
         $this->overtimeHours = $this->initialOvertimeMinutes > 0 ? self::hoursLabel($this->initialOvertimeMinutes) : '';
+        $this->onLeave = (bool) ($day['on_leave'] ?? false);
+        $this->leaveTypeName = $day['leave_type'] ?? null;
+    }
+
+    public function toggleMarkLeave(): void
+    {
+        $this->markLeave = ! $this->markLeave;
+    }
+
+    /** Bound to the leave end-date picker's @change — see setCustomFrom()/setCustomTo() in Earning for why. */
+    public function setLeaveEndDate(string $value): void
+    {
+        $this->leaveEndDate = $value;
     }
 
     public function submit(): void
     {
         $regular = trim($this->regularHours);
         $overtime = trim($this->overtimeHours);
+        $leaveEnd = trim($this->leaveEndDate);
 
-        if ($regular === '' && $overtime === '') {
+        if ($regular === '' && $overtime === '' && ! $this->markLeave) {
             $this->error = '';
-            $this->fieldErrors = ['regularHours' => 'Enter regular and/or overtime hours for this day.'];
+            $this->fieldErrors = ['regularHours' => 'Enter regular and/or overtime hours, or mark this day as leave.'];
 
             return;
         }
@@ -78,6 +110,13 @@ class ManualHoursCreate extends Screen
 
                 return;
             }
+        }
+
+        if ($this->markLeave && $leaveEnd < $this->workDate) {
+            $this->error = '';
+            $this->fieldErrors = ['leaveEndDate' => 'The end date must be on or after the start date.'];
+
+            return;
         }
 
         $reason = trim($this->reason) ?: null;
@@ -111,6 +150,18 @@ class ManualHoursCreate extends Screen
 
             $amount = $result['amount'] ?? null;
             $messages[] = $amount !== null ? "Overtime saved - {$amount}" : 'Overtime saved';
+        }
+
+        if ($this->markLeave) {
+            $result = $this->call(fn ($api) => $api->requestLeave(null, $this->workDate, $leaveEnd, $reason));
+
+            if ($result === null) {
+                $this->busy = false;
+
+                return;
+            }
+
+            $messages[] = 'Marked as leave';
         }
 
         $this->busy = false;

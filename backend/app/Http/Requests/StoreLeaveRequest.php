@@ -14,7 +14,9 @@ class StoreLeaveRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'leave_type_id' => ['required', 'exists:leave_types,id'],
+            // Omitted entirely by the calendar's "mark as leave" flow, which always means Annual
+            // Leave — the only type employees see or choose from anywhere else in this app.
+            'leave_type_id' => ['nullable', 'exists:leave_types,id'],
             'start_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'reason' => ['nullable', 'string', 'max:1000'],

@@ -5,10 +5,21 @@ namespace Tests\Feature;
 use App\Models\Holiday;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use Laravel\Sanctum\Sanctum;
 
 class LeaveApiTest extends ApiTestCase
 {
+    public function test_omitting_leave_type_id_defaults_to_annual_leave(): void
+    {
+        Sanctum::actingAs($this->makeUser());
+        LeaveType::create(['name' => 'Annual Leave', 'code' => 'AL', 'days_per_year' => 18]);
+
+        $this->postJson('/api/v1/leave-requests', [
+            'start_date' => '2026-11-02', 'end_date' => '2026-11-02',
+        ])->assertCreated()->assertJsonPath('leave_type.code', 'AL');
+    }
+
     public function test_leave_request_counts_only_working_days(): void
     {
         Sanctum::actingAs($this->makeUser());

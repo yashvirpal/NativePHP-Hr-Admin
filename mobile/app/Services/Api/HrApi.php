@@ -111,7 +111,7 @@ class HrApi
         return $this->send('GET', 'attendance/totals', array_filter(['month' => $month]));
     }
 
-    /** The employee's current regular/overtime values for one day - what "log hours" prefills. */
+    /** The employee's current regular/overtime/leave status for one day - what "log hours" prefills. */
     public function dayEntry(string $workDate): array
     {
         return $this->send('GET', 'attendance/manual', ['work_date' => $workDate]);
@@ -149,6 +149,17 @@ class HrApi
     public function cancelLeave(int $id): array
     {
         return $this->send('POST', "leave-requests/{$id}/cancel");
+    }
+
+    /** No $leaveTypeId means Annual Leave — what the calendar's "mark as leave" flow always means. */
+    public function requestLeave(?int $leaveTypeId, string $startDate, string $endDate, ?string $reason = null): array
+    {
+        return $this->send('POST', 'leave-requests', array_filter([
+            'leave_type_id' => $leaveTypeId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'reason' => $reason,
+        ], fn ($v) => $v !== null && $v !== ''));
     }
 
     // ─── Holidays & overtime ────────────────────────────────────────────────────

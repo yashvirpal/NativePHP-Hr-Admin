@@ -33,7 +33,7 @@ class LeaveController extends ApiController
 
         $leave = $this->portal->requestLeave(
             $this->employee($request),
-            (int) $data['leave_type_id'],
+            isset($data['leave_type_id']) ? (int) $data['leave_type_id'] : null,
             $data['start_date'],
             $data['end_date'],
             $data['reason'] ?? null,

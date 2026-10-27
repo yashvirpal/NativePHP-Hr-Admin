@@ -182,20 +182,29 @@ class EmployeePortalService
     }
 
     /**
-     * The employee's manual regular minutes and overtime minutes/amount for one specific day —
-     * what the "log hours" screen prefills when the employee taps that day again.
+     * The employee's manual regular minutes, overtime minutes/amount, and leave status for one
+     * specific day — what the "log hours" screen prefills when the employee taps that day again.
      *
-     * @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string}
+     * @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string, on_leave:bool, leave_type:?string}
      */
     public function dayEntry(Employee $employee, string $workDate): array
     {
         $regular = $this->attendance->manualRegularFor($employee, $workDate);
         $overtime = $this->overtime->requestFor($employee, $workDate);
 
+        $leave = LeaveRequest::with('leaveType')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $workDate)
+            ->whereDate('end_date', '>=', $workDate)
+            ->first();
+
         return [
             'regular_minutes' => $regular?->minutes ?? 0,
             'overtime_minutes' => $overtime?->minutes ?? 0,
             'overtime_amount' => $overtime?->amount,
+            'on_leave' => $leave !== null,
+            'leave_type' => $leave?->leaveType?->name,
         ];
     }
 
@@ -341,10 +350,15 @@ class EmployeePortalService
             ->paginate(15);
     }
 
-    public function requestLeave(Employee $employee, int $leaveTypeId, string $start, string $end, ?string $reason = null): LeaveRequest
+    /** No $leaveTypeId means Annual Leave — what the calendar's "mark as leave" flow always means. */
+    public function requestLeave(Employee $employee, ?int $leaveTypeId, string $start, string $end, ?string $reason = null): LeaveRequest
     {
+        $type = $leaveTypeId !== null
+            ? LeaveType::findOrFail($leaveTypeId)
+            : LeaveType::where('code', 'AL')->firstOrFail();
+
         return $this->leave
-            ->request($employee, LeaveType::findOrFail($leaveTypeId), $start, $end, $reason)
+            ->request($employee, $type, $start, $end, $reason)
             ->load('leaveType');
     }
 

@@ -148,7 +148,29 @@ class AttendanceApiTest extends ApiTestCase
         Sanctum::actingAs($this->makeUser());
 
         $this->getJson('/api/v1/attendance/manual?work_date=2026-11-02')->assertOk()
-            ->assertExactJson(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]);
+            ->assertExactJson([
+                'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null,
+                'on_leave' => false, 'leave_type' => null,
+            ]);
+    }
+
+    public function test_day_entry_reports_an_approved_leave_day(): void
+    {
+        $user = $this->makeUser();
+        Sanctum::actingAs($user);
+        $type = $this->leaveType(10);
+
+        $this->postJson('/api/v1/leave-requests', [
+            'leave_type_id' => $type->id, 'start_date' => '2026-11-02', 'end_date' => '2026-11-03',
+        ])->assertCreated();
+
+        $this->getJson('/api/v1/attendance/manual?work_date=2026-11-02')->assertOk()
+            ->assertJsonPath('on_leave', true)
+            ->assertJsonPath('leave_type', 'Annual');
+
+        // The day after the range is untouched.
+        $this->getJson('/api/v1/attendance/manual?work_date=2026-11-04')->assertOk()
+            ->assertJsonPath('on_leave', false);
     }
 
     public function test_calendar_marks_an_approved_leave_day_with_the_leave_type_name(): void
@@ -237,11 +259,17 @@ class AttendanceApiTest extends ApiTestCase
         $this->postJson('/api/v1/overtime-requests', ['work_date' => '2026-11-02', 'minutes' => 60])->assertCreated();
 
         $this->getJson('/api/v1/attendance/manual?work_date=2026-11-02')->assertOk()
-            ->assertExactJson(['regular_minutes' => 90, 'overtime_minutes' => 60, 'overtime_amount' => '150.00']);
+            ->assertExactJson([
+                'regular_minutes' => 90, 'overtime_minutes' => 60, 'overtime_amount' => '150.00',
+                'on_leave' => false, 'leave_type' => null,
+            ]);
 
         // A different date is untouched.
         $this->getJson('/api/v1/attendance/manual?work_date=2026-11-03')->assertOk()
-            ->assertExactJson(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]);
+            ->assertExactJson([
+                'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null,
+                'on_leave' => false, 'leave_type' => null,
+            ]);
     }
 
     public function test_attendance_totals_combines_punch_derived_and_manual_regular_with_overtime(): void

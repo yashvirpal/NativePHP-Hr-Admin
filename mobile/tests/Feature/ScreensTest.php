@@ -430,6 +430,88 @@ class ScreensTest extends TestCase
         Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
     }
 
+    public function test_manual_hours_create_marks_a_future_day_as_leave(): void
+    {
+        $this->signIn();
+        $date = now()->addDays(3)->toDateString();
+        Http::fake([
+            self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]),
+            self::BASE.'/leave-requests' => Http::response(['id' => 1, 'status' => 'approved'], 201),
+        ]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => $date])
+            ->assertDontSee('On leave')
+            ->set('markLeave', true)
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/leave-requests'
+            && $r->data()['start_date'] === $date && $r->data()['end_date'] === $date
+            && ! array_key_exists('leave_type_id', $r->data()));
+    }
+
+    public function test_manual_hours_create_extends_leave_through_a_later_date(): void
+    {
+        $this->signIn();
+        $start = now()->addDays(3)->toDateString();
+        $end = now()->addDays(5)->toDateString();
+        Http::fake([
+            self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null]),
+            self::BASE.'/leave-requests' => Http::response(['id' => 1, 'status' => 'approved'], 201),
+        ]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => $start])
+            ->set('markLeave', true)
+            ->pickDate('setLeaveEndDate', $end)
+            ->tap('Save')
+            ->assertWentBack();
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/leave-requests'
+            && $r->data()['start_date'] === $start && $r->data()['end_date'] === $end);
+    }
+
+    public function test_manual_hours_create_rejects_an_end_date_before_the_start(): void
+    {
+        $this->signIn();
+        $start = now()->addDays(5)->toDateString();
+        $end = now()->addDays(3)->toDateString();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => $start])
+            ->set('markLeave', true)
+            ->pickDate('setLeaveEndDate', $end)
+            ->tap('Save')
+            ->assertSee('The end date must be on or after the start date.');
+
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
+    }
+
+    public function test_manual_hours_create_shows_read_only_status_when_already_on_leave(): void
+    {
+        $this->signIn();
+        $date = now()->addDays(3)->toDateString();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response([
+            'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null,
+            'on_leave' => true, 'leave_type' => 'Annual Leave',
+        ])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => $date])
+            ->assertSee('On leave')
+            ->assertSee('Annual Leave')
+            ->assertDontSee('Mark as leave');
+    }
+
+    public function test_manual_hours_create_does_not_offer_leave_for_a_past_day(): void
+    {
+        $this->signIn();
+        $date = now()->subDays(5)->toDateString();
+        Http::fake([self::BASE.'/attendance/manual?*' => Http::response(['regular_minutes' => 60, 'overtime_minutes' => 0, 'overtime_amount' => null])]);
+
+        Native::test(ManualHoursCreate::class, [], ['date' => $date])
+            ->assertDontSee('Mark as leave')
+            ->assertDontSee('On leave');
+    }
+
     // ─── Leave ──────────────────────────────────────────────────────────────────
 
     private function leavePage(): array
