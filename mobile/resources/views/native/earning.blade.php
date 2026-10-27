@@ -1,7 +1,5 @@
 @php
-    // A preset button is only "active" when a preset is actually in effect — not while a
-    // custom range is showing or applied, even if $months still holds its last value.
-    $presetVariant = fn (int $m) => (! $useCustomRange && ! $showingCustomInputs && $months === $m) ? 'primary' : 'ghost';
+    $presetVariant = fn (string $key) => $activePreset === $key ? 'primary' : 'ghost';
 @endphp
 <native:column class="w-full h-full bg-theme-background">
     <native:refreshable @refresh="refresh" class="w-full flex-1">
@@ -13,12 +11,15 @@
             <native:column class="w-full gap-2">
                 <native:text class="text-xs font-bold text-theme-on-surface-variant">Period</native:text>
                 <native:row class="w-full gap-2">
-                    <native:button class="flex-1" label="1 month" variant="{{ $presetVariant(1) }}" size="sm" @press="selectPeriod(1)" />
-                    <native:button class="flex-1" label="3 months" variant="{{ $presetVariant(3) }}" size="sm" @press="selectPeriod(3)" />
-                    <native:button class="flex-1" label="6 months" variant="{{ $presetVariant(6) }}" size="sm" @press="selectPeriod(6)" />
-                    <native:button class="flex-1" label="1 year" variant="{{ $presetVariant(12) }}" size="sm" @press="selectPeriod(12)" />
+                    <native:button class="flex-1" label="This month" variant="{{ $presetVariant('this_month') }}" size="sm" @press="selectThisMonth" />
+                    <native:button class="flex-1" label="Last month" variant="{{ $presetVariant('last_month') }}" size="sm" @press="selectLastMonth" />
+                    <native:button class="flex-1" label="3 months" variant="{{ $presetVariant('3') }}" size="sm" @press="selectPeriod(3)" />
                 </native:row>
-                <native:button label="Custom range" variant="{{ $useCustomRange || $showingCustomInputs ? 'primary' : 'ghost' }}" size="sm" @press="showCustomRange" />
+                <native:row class="w-full gap-2">
+                    <native:button class="flex-1" label="6 months" variant="{{ $presetVariant('6') }}" size="sm" @press="selectPeriod(6)" />
+                    <native:button class="flex-1" label="1 year" variant="{{ $presetVariant('12') }}" size="sm" @press="selectPeriod(12)" />
+                    <native:button class="flex-1" label="Custom range" variant="{{ $presetVariant('custom') }}" size="sm" @press="showCustomRange" />
+                </native:row>
             </native:column>
 
             @if ($showingCustomInputs)

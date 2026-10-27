@@ -792,6 +792,23 @@ class ScreensTest extends TestCase
         Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/earnings?months=3');
     }
 
+    public function test_earning_selects_last_month(): void
+    {
+        $this->signIn();
+        $from = now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+        $to = now()->subMonthNoOverflow()->endOfMonth()->toDateString();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => null, 'from' => $from, 'to' => $to,
+            'regular_minutes' => 300, 'overtime_minutes' => 0, 'overtime_amount' => null, 'leave_days' => '0.0',
+        ])]);
+
+        Native::test(Earning::class)
+            ->tap('Last month')
+            ->assertSee('5h 0m');
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE."/earnings?from={$from}&to={$to}");
+    }
+
     public function test_earning_applies_a_custom_date_range(): void
     {
         $this->signIn();
@@ -866,7 +883,7 @@ class ScreensTest extends TestCase
             ->assertSet('showingCustomInputs', true)
             ->assertSet('useCustomRange', false);
 
-        // The "1 month" preset is still the last-known $months value, but it must not render
+        // "This month" is still the default $activePreset value, but it must not render
         // as selected while the custom-range panel is open — this is the bug being guarded.
         $earning->pickDate('setCustomFrom', '2026-08-01')
             ->pickDate('setCustomTo', '2026-08-31')

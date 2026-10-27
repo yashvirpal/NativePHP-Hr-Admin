@@ -8,9 +8,13 @@ use Illuminate\View\View;
 /** Regular hours, overtime hours/amount and leave days taken, over a selectable period. */
 class Earning extends Screen
 {
-    /** 1 | 3 | 6 | 12 - ignored while a custom range is active. */
+    /** 'this_month' | 'last_month' | '3' | '6' | '12' | 'custom' — drives which tab is highlighted. */
+    public string $activePreset = 'this_month';
+
+    /** 3 | 6 | 12 - only meaningful for the trailing-window presets. */
     public int $months = 1;
 
+    /** True for both "Last month" and an applied custom range — both request an explicit [from, to]. */
     public bool $useCustomRange = false;
 
     /** Whether the custom-range inputs are visible (independent of whether they're applied). */
@@ -50,16 +54,37 @@ class Earning extends Screen
         $this->load();
     }
 
-    public function selectPeriod(int $months): void
+    public function selectThisMonth(): void
     {
+        $this->activePreset = 'this_month';
         $this->useCustomRange = false;
         $this->showingCustomInputs = false;
-        $this->months = in_array($months, [1, 3, 6, 12], true) ? $months : 1;
+        $this->months = 1;
+        $this->load();
+    }
+
+    public function selectLastMonth(): void
+    {
+        $this->activePreset = 'last_month';
+        $this->showingCustomInputs = false;
+        $this->useCustomRange = true;
+        $this->customFrom = now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+        $this->customTo = now()->subMonthNoOverflow()->endOfMonth()->toDateString();
+        $this->load();
+    }
+
+    public function selectPeriod(int $months): void
+    {
+        $this->activePreset = (string) $months;
+        $this->useCustomRange = false;
+        $this->showingCustomInputs = false;
+        $this->months = in_array($months, [3, 6, 12], true) ? $months : 3;
         $this->load();
     }
 
     public function showCustomRange(): void
     {
+        $this->activePreset = 'custom';
         $this->showingCustomInputs = true;
 
         // iOS's compact date-picker never commits a selection until it has adopted a non-empty
