@@ -15,7 +15,6 @@ class LeaveController extends PortalController
         $employee = $this->employee($request);
 
         return view('employee.leave.index', [
-            'balances' => $this->portal->leaveBalances($employee),
             'requests' => $this->portal->leaveRequests($employee),
         ]);
     }

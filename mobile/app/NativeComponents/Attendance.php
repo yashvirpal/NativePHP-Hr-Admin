@@ -34,7 +34,7 @@ class Attendance extends Screen
     public ?array $selectedDay = null;
 
     /** @var array{regular: string, overtime: string, overtimeAmount: ?string} */
-    public array $monthTotals = ['regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
+    public array $monthTotals = ['regular' => '-', 'overtime' => '-', 'overtimeAmount' => null, 'leaveDays' => '-'];
 
     public function selectDay(string $date): void
     {
@@ -158,14 +158,15 @@ class Attendance extends Screen
         }
     }
 
-    /** @param array{regular_minutes?: int, overtime_minutes?: int, overtime_amount?: ?string} $t
-     *  @return array{regular: string, overtime: string, overtimeAmount: ?string} */
+    /** @param array{regular_minutes?: int, overtime_minutes?: int, overtime_amount?: ?string, leave_days?: string} $t
+     *  @return array{regular: string, overtime: string, overtimeAmount: ?string, leaveDays: string} */
     private function formatTotals(array $t): array
     {
         return [
             'regular' => Format::minutes($t['regular_minutes'] ?? 0),
             'overtime' => Format::minutes($t['overtime_minutes'] ?? 0),
             'overtimeAmount' => $t['overtime_amount'] ?? null,
+            'leaveDays' => Format::days($t['leave_days'] ?? 0),
         ];
     }
 

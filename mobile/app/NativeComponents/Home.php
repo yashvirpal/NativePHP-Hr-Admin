@@ -22,14 +22,11 @@ class Home extends Screen
 
     public string $todayStatus = '';
 
-    /** @var array{present: int, late: int, regular: string, overtime: string, overtimeAmount: ?string} */
-    public array $month = ['present' => 0, 'late' => 0, 'regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
+    /** @var array{present: int, leaveDays: string, regular: string, overtime: string, overtimeAmount: ?string} */
+    public array $month = ['present' => 0, 'leaveDays' => '-', 'regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
 
     /** @var array{regular: string, overtime: string, overtimeAmount: ?string} */
     public array $year = ['regular' => '-', 'overtime' => '-', 'overtimeAmount' => null];
-
-    /** @var list<array{name: string, remaining: string, allocated: string, used: string}> */
-    public array $balances = [];
 
     /** @var array{amount: ?string, hours: string} */
     public array $lifetimeOvertime = ['amount' => null, 'hours' => '-'];
@@ -95,7 +92,7 @@ class Home extends Screen
 
         $this->month = [
             'present' => (int) ($month['days_present'] ?? 0),
-            'late' => (int) ($month['days_late'] ?? 0),
+            'leaveDays' => Format::days($monthTotals['leave_days'] ?? 0),
             'regular' => Format::minutes($monthTotals['regular_minutes'] ?? 0),
             'overtime' => Format::minutes($monthTotals['overtime_minutes'] ?? 0),
             'overtimeAmount' => $monthTotals['overtime_amount'] ?? null,
@@ -111,15 +108,6 @@ class Home extends Screen
             'amount' => $lifetimeTotals['overtime_amount'] ?? null,
             'hours' => Format::minutes($lifetimeTotals['overtime_minutes'] ?? 0),
         ];
-
-        $this->balances = collect($data['balances'] ?? [])
-            ->filter(fn ($b) => (float) ($b['allocated'] ?? 0) > 0)
-            ->map(fn ($b) => [
-                'name' => (string) ($b['leave_type']['name'] ?? ''),
-                'remaining' => Format::days($b['remaining'] ?? 0),
-                'allocated' => Format::days($b['allocated'] ?? 0),
-                'used' => Format::days($b['used'] ?? 0),
-            ])->values()->all();
 
         $this->holidays = collect($data['upcoming_holidays'] ?? [])->map(fn ($h) => [
             'name' => (string) $h['name'],

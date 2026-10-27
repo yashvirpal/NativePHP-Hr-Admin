@@ -4,14 +4,10 @@ namespace App\NativeComponents;
 
 use App\Support\Format;
 use Illuminate\View\View;
-use Native\Mobile\Facades\Dialog;
 
 class Leave extends Screen
 {
-    /** @var list<array{name: string, remaining: string, allocated: string, used: string}> */
-    public array $balances = [];
-
-    /** @var list<array{id: int, type: string, period: string, days: string, status: string, statusKey: string, reason: string, canCancel: bool}> */
+    /** @var list<array{type: string, period: string, days: string, reason: string}> */
     public array $requests = [];
 
     public function navTitle(): string
@@ -39,47 +35,8 @@ class Leave extends Screen
         $this->load();
     }
 
-    /** Asks before cancelling; the actual call is cancel(). */
-    public function confirmCancel(int $id): void
-    {
-        Dialog::alert('Cancel request?', 'This leave request will be withdrawn.', [
-            ['label' => 'Keep it', 'style' => 'cancel'],
-            ['label' => 'Cancel request', 'style' => 'destructive'],
-        ])->buttonPressed(function ($event) use ($id) {
-            if ($event->label === 'Cancel request') {
-                $this->cancel($id);
-            }
-        });
-    }
-
-    public function cancel(int $id): void
-    {
-        $this->busy = true;
-        $result = $this->call(fn ($api) => $api->cancelLeave($id));
-        $this->busy = false;
-
-        if ($result !== null) {
-            Dialog::toast('Request cancelled', 'short');
-            $this->load();
-        }
-    }
-
     private function load(): void
     {
-        $balances = $this->call(fn ($api) => $api->leaveBalances());
-        if ($balances === null) {
-            return;
-        }
-
-        $this->balances = collect($balances)
-            ->filter(fn ($b) => (float) ($b['allocated'] ?? 0) > 0)
-            ->map(fn ($b) => [
-                'name' => (string) ($b['leave_type']['name'] ?? ''),
-                'remaining' => Format::days($b['remaining'] ?? 0),
-                'allocated' => Format::days($b['allocated'] ?? 0),
-                'used' => Format::days($b['used'] ?? 0),
-            ])->values()->all();
-
         $page = $this->call(fn ($api) => $api->leaveRequests());
         if ($page === null) {
             return;
@@ -89,17 +46,12 @@ class Leave extends Screen
             $same = ($r['start_date'] ?? null) === ($r['end_date'] ?? null);
 
             return [
-                'id' => (int) $r['id'],
                 'type' => (string) ($r['leave_type']['name'] ?? 'Leave'),
                 'period' => $same
                     ? Format::date($r['start_date'], 'd M Y')
                     : Format::date($r['start_date'], 'd M').' - '.Format::date($r['end_date'], 'd M Y'),
                 'days' => Format::days($r['days'] ?? 0),
-                'status' => Format::status($r['status'] ?? null),
-                'statusKey' => (string) ($r['status'] ?? ''),
                 'reason' => (string) ($r['reason'] ?? ''),
-                // Leave is auto-approved on submit (no admin review step); 'approved' is the only cancellable state.
-                'canCancel' => ($r['status'] ?? '') === 'approved',
             ];
         })->all();
     }

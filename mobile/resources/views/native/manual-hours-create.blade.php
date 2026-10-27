@@ -27,7 +27,7 @@
 
         @if ($onLeave)
             <native:column class="w-full p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
-                <native:text class="text-sm font-bold text-theme-secondary">On leave</native:text>
+                <native:text class="text-sm font-bold text-theme-leave">On leave</native:text>
                 <native:text class="text-sm text-theme-on-surface-variant">
                     Marked as {{ $leaveTypeName ?? 'leave' }}. Cancel it from the Leave tab if this was a mistake.
                 </native:text>

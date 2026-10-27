@@ -136,19 +136,9 @@ class HrApi
 
     // ─── Leave ──────────────────────────────────────────────────────────────────
 
-    public function leaveBalances(): array
-    {
-        return $this->send('GET', 'leave-balances');
-    }
-
     public function leaveRequests(int $page = 1): array
     {
         return $this->send('GET', 'leave-requests', ['page' => $page]);
-    }
-
-    public function cancelLeave(int $id): array
-    {
-        return $this->send('POST', "leave-requests/{$id}/cancel");
     }
 
     /** No $leaveTypeId means Annual Leave — what the calendar's "mark as leave" flow always means. */

@@ -30,8 +30,8 @@
                         <native:text class="text-xs text-theme-on-surface-variant">Days present</native:text>
                     </native:column>
                     <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
-                        <native:text class="text-2xl font-bold text-theme-on-surface">{{ $month['late'] }}</native:text>
-                        <native:text class="text-xs text-theme-on-surface-variant">Late</native:text>
+                        <native:text class="text-2xl font-bold text-theme-leave">{{ $month['leaveDays'] }}</native:text>
+                        <native:text class="text-xs text-theme-on-surface-variant">Leaves</native:text>
                     </native:column>
                 </native:row>
                 <native:column class="w-full p-3 gap-2 rounded-2xl bg-theme-surface-variant/40">
@@ -65,19 +65,6 @@
                         </native:text>
                     </native:row>
                 </native:column>
-
-                {{-- Leave balance --}}
-                @if (count($balances) > 0)
-                    <native:text class="text-lg font-bold text-theme-on-surface">Leave balance</native:text>
-                    <native:column class="w-full gap-2">
-                        @foreach ($balances as $b)
-                            <native:row class="w-full items-center justify-between">
-                                <native:text class="text-base text-theme-on-surface">{{ $b['name'] }}</native:text>
-                                <native:text class="text-base font-bold text-theme-on-surface">{{ $b['remaining'] }} / {{ $b['allocated'] }} ({{ $b['used'] }} used)</native:text>
-                            </native:row>
-                        @endforeach
-                    </native:column>
-                @endif
 
                 {{-- Holidays --}}
                 @if (count($holidays) > 0)

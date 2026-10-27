@@ -56,7 +56,7 @@
                     <native:text class="text-xs text-theme-on-surface-variant">Regular hours</native:text>
                 </native:column>
                 <native:column class="flex-1 p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
-                    <native:text class="text-2xl font-bold text-theme-secondary">{{ $leaveDays }}</native:text>
+                    <native:text class="text-2xl font-bold text-theme-leave">{{ $leaveDays }}</native:text>
                     <native:text class="text-xs text-theme-on-surface-variant">Leave days</native:text>
                 </native:column>
             </native:row>

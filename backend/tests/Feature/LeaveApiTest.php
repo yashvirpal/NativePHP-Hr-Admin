@@ -20,6 +20,18 @@ class LeaveApiTest extends ApiTestCase
         ])->assertCreated()->assertJsonPath('leave_type.code', 'AL');
     }
 
+    public function test_leave_balances_returns_only_annual_leave(): void
+    {
+        Sanctum::actingAs($this->makeUser());
+        LeaveType::create(['name' => 'Annual Leave', 'code' => 'AL', 'days_per_year' => 18]);
+        LeaveType::create(['name' => 'Sick Leave', 'code' => 'SL', 'days_per_year' => 10]);
+
+        $response = $this->getJson('/api/v1/leave-balances')->assertOk();
+
+        $this->assertCount(1, $response->json());
+        $response->assertJsonPath('0.leave_type.code', 'AL');
+    }
+
     public function test_leave_request_counts_only_working_days(): void
     {
         Sanctum::actingAs($this->makeUser());

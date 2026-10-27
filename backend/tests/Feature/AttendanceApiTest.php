@@ -294,6 +294,28 @@ class AttendanceApiTest extends ApiTestCase
             ->assertJsonPath('month.overtime_amount', '200.00');
     }
 
+    public function test_attendance_totals_reports_leave_days_taken_for_month_and_year(): void
+    {
+        $user = $this->makeUser();
+        Sanctum::actingAs($user);
+        $type = $this->leaveType(10);
+
+        $this->postJson('/api/v1/leave-requests', [
+            'leave_type_id' => $type->id, 'start_date' => '2026-11-02', 'end_date' => '2026-11-03',
+        ])->assertCreated();
+
+        Carbon::setTestNow('2026-05-11 08:55:00');
+        $this->postJson('/api/v1/leave-requests', [
+            'leave_type_id' => $type->id, 'start_date' => '2026-05-11', 'end_date' => '2026-05-11',
+        ])->assertCreated();
+
+        Carbon::setTestNow('2026-11-02 08:55:00');
+        $this->getJson('/api/v1/attendance/totals?month=2026-11')
+            ->assertOk()
+            ->assertJsonPath('month.leave_days', '2.0') // only November's leave
+            ->assertJsonPath('year.leave_days', '3.0'); // November + May
+    }
+
     public function test_attendance_totals_clamps_a_day_where_overtime_exceeds_worked_minutes_to_zero(): void
     {
         $user = $this->makeUser();

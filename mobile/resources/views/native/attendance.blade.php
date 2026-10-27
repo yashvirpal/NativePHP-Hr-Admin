@@ -2,11 +2,14 @@
     $tone = fn (string $key) => match ($key) {
         'present' => 'text-theme-primary',
         'late', 'half_day' => 'text-theme-on-surface',
-        'leave' => 'text-theme-secondary',
+        'leave' => 'text-theme-leave',
         'logged' => 'text-theme-accent',
         'absent' => 'text-theme-destructive',
         default => 'text-theme-on-surface-variant',
     };
+    // A leave day gets a tinted cell background on the grid, not just a colored number -
+    // otherwise the distinction is too subtle to read at a glance.
+    $cellBg = fn (string $key) => $key === 'leave' ? 'bg-theme-leave/15' : 'bg-theme-surface-variant/40';
     $weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 @endphp
 <native:column class="w-full h-full bg-theme-background">
@@ -28,6 +31,10 @@
                 <native:text class="text-sm font-bold text-theme-primary">
                     {{ $monthTotals['overtime'] }}@if ($monthTotals['overtimeAmount'] !== null) - {{ $monthTotals['overtimeAmount'] }} @endif
                 </native:text>
+            </native:row>
+            <native:row class="w-full items-center justify-between">
+                <native:text class="text-sm text-theme-on-surface">Leave</native:text>
+                <native:text class="text-sm font-bold text-theme-leave">{{ $monthTotals['leaveDays'] }} day(s)</native:text>
             </native:row>
         </native:column>
     </native:column>
@@ -56,7 +63,7 @@
 
                     @foreach ($rows as $row)
                         <native:pressable @press="selectDay('{{ $row['date'] }}')">
-                            <native:column :height="48" class="items-center justify-center rounded-xl bg-theme-surface-variant/40">
+                            <native:column :height="48" class="items-center justify-center rounded-xl {{ $cellBg($row['statusKey']) }}">
                                 <native:text class="font-bold {{ $tone($row['statusKey']) }}">{{ $row['day'] }}</native:text>
                             </native:column>
                         </native:pressable>

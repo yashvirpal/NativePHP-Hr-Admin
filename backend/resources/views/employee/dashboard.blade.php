@@ -23,7 +23,7 @@
 
 <div class="grid">
     <div class="card stat ok"><span>Days present (this month)</span><b>{{ $month['days_present'] }}</b></div>
-    <div class="card stat warn"><span>Late arrivals</span><b>{{ $month['days_late'] }}</b></div>
+    <div class="card stat warn"><span>Leaves (this month)</span><b>{{ $totals['leave_days'] }}</b></div>
     <div class="card stat accent"><span>Regular (this month)</span><b>{{ intdiv($totals['regular_minutes'], 60) }}h {{ $totals['regular_minutes'] % 60 }}m</b></div>
     <div class="card stat accent">
         <span>Overtime (this month)</span>
@@ -41,18 +41,6 @@
         <b>{{ intdiv($yearTotals['overtime_minutes'], 60) }}h {{ $yearTotals['overtime_minutes'] % 60 }}m</b>
         @if ($yearTotals['overtime_amount'] !== null) <div class="muted">{{ $yearTotals['overtime_amount'] }}</div> @endif
     </div>
-</div>
-
-<div class="card">
-    <h2>Leave balance ({{ now()->year }})</h2>
-    <div class="table-wrap"><table>
-        <thead><tr><th>Type</th><th>Allocated</th><th>Used</th><th>Remaining</th></tr></thead>
-        <tbody>
-        @foreach ($balances->where('allocated', '>', 0) as $b)
-            <tr><td>{{ $b['leave_type']->name }}</td><td>{{ $b['allocated'] }}</td><td>{{ $b['used'] }}</td><td><b>{{ $b['remaining'] }}</b></td></tr>
-        @endforeach
-        </tbody>
-    </table></div>
 </div>
 
 <div class="card">

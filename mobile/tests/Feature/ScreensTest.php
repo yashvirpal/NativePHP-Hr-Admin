@@ -67,10 +67,6 @@ class ScreensTest extends TestCase
             'employee' => ['designation' => 'Software Engineer', 'user' => ['name' => 'Alice Employee'], 'department' => ['name' => 'Engineering']],
             'today' => null,
             'is_punched_in' => false,
-            'balances' => [
-                ['leave_type' => ['name' => 'Annual Leave'], 'allocated' => '18.0', 'used' => '2.0', 'remaining' => 16],
-                ['leave_type' => ['name' => 'Unpaid Leave'], 'allocated' => '0.0', 'used' => '0.0', 'remaining' => 0],
-            ],
             'upcoming_holidays' => [['name' => 'Diwali', 'date' => '2026-11-08', 'is_optional' => false]],
             'month' => ['days_present' => 7, 'days_late' => 2, 'worked_minutes' => 3330],
         ], $overrides);
@@ -137,7 +133,7 @@ class ScreensTest extends TestCase
         Http::fake([
             self::BASE.'/dashboard' => Http::response($this->dashboard()),
             self::BASE.'/attendance/totals*' => Http::response([
-                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00'],
+                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00', 'leave_days' => '4.0'],
                 'year' => ['regular_minutes' => 6005, 'overtime_minutes' => 600, 'overtime_amount' => '2000.00'],
                 'lifetime' => ['overtime_minutes' => 900, 'overtime_amount' => '3000.00'],
             ]),
@@ -149,12 +145,12 @@ class ScreensTest extends TestCase
             ->assertSee('Not punched in')
             ->assertDontSee('Punch in')
             ->assertDontSee('Punch out')
-            ->assertSee('Annual Leave')
-            ->assertSee('16 / 18')
-            ->assertSee('2 used')
-            ->assertDontSee('Unpaid Leave')            // zero-allocation types are hidden
+            ->assertDontSee('Leave balance')
             ->assertSee('Diwali')
             ->assertSee('This month')
+            ->assertDontSee('Late')
+            ->assertSee('Leaves')
+            ->assertSee('4')
             ->assertSee('2h 5m')
             ->assertSee('1h 0m')
             ->assertSee('200.00')
@@ -205,7 +201,7 @@ class ScreensTest extends TestCase
         });
 
         // Detail (in/out, regular/overtime) now lives in a modal opened by tapping a day;
-        // selectDay() is the direct-call bypass, same pattern as Leave::confirmCancel()/cancel().
+        // selectDay() is the direct-call bypass for that tap.
         Native::test(Attendance::class)
             ->assertSee(now()->format('F Y'))
             ->call('selectDay', $month.'-02')
@@ -253,7 +249,7 @@ class ScreensTest extends TestCase
         Http::fake([
             self::BASE.'/attendance/calendar?*' => Http::response($this->calendarDays(now()->format('Y-m'))),
             self::BASE.'/attendance/totals*' => Http::response([
-                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00'],
+                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00', 'leave_days' => '1.0'],
                 'year' => ['regular_minutes' => 6005, 'overtime_minutes' => 600, 'overtime_amount' => '2000.00'],
             ]),
         ]);
@@ -263,6 +259,8 @@ class ScreensTest extends TestCase
             ->assertSee('2h 5m')
             ->assertSee('1h 0m')
             ->assertSee('200.00')
+            ->assertSee('Leave')
+            ->assertSee('1 day(s)')
             ->assertDontSee('This year')
             ->assertDontSee('100h 5m');
     }
@@ -522,36 +520,20 @@ class ScreensTest extends TestCase
         ]];
     }
 
-    public function test_leave_screen_lists_balances_and_requests(): void
+    public function test_leave_screen_lists_requests(): void
     {
         $this->signIn();
         Http::fake([
-            self::BASE.'/leave-balances' => Http::response([['leave_type' => ['name' => 'Annual Leave'], 'allocated' => '18.0', 'used' => '2.0', 'remaining' => 16]]),
             self::BASE.'/leave-requests*' => Http::response($this->leavePage()),
         ]);
 
         Native::test(Leave::class)
-            ->assertSee('16 / 18')
-            ->assertSee('2 used')
+            ->assertSee('My leaves')
             ->assertSee('02 Nov - 03 Nov 2026 - 2 day(s)')
-            ->assertSee('Approved')
             ->assertSee('01 Oct 2026 - 1 day(s)')
-            ->assertSee('Cancelled')
-            ->assertSee('Cancel request');         // only the still-approved one
-    }
-
-    public function test_cancelling_a_leave_request_calls_the_api(): void
-    {
-        $this->signIn();
-        Http::fake([
-            self::BASE.'/leave-balances' => Http::response([]),
-            self::BASE.'/leave-requests/5/cancel' => Http::response(['id' => 5, 'status' => 'cancelled']),
-            self::BASE.'/leave-requests*' => Http::response(['data' => []]),
-        ]);
-
-        Native::test(Leave::class)->call('cancel', 5);
-
-        Http::assertSent(fn (Request $r) => $r->method() === 'POST' && $r->url() === self::BASE.'/leave-requests/5/cancel');
+            ->assertDontSee('Approved')
+            ->assertDontSee('Cancelled')
+            ->assertDontSee('Cancel request');
     }
 
     // ─── Overtime ───────────────────────────────────────────────────────────────

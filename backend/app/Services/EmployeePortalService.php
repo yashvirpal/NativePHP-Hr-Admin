@@ -47,7 +47,6 @@ class EmployeePortalService
             'employee' => $employee,
             'today' => $today,
             'is_punched_in' => $this->isPunchedIn($today),
-            'balances' => $this->leaveBalances($employee),
             'upcoming_holidays' => Holiday::whereDate('date', '>=', Carbon::today())->orderBy('date')->limit(3)->get(),
             'month' => [
                 'days_present' => $month->whereIn('status', ['present', 'late'])->count(),
@@ -209,13 +208,13 @@ class EmployeePortalService
     }
 
     /**
-     * Regular/overtime minute totals for the given month and for its whole year, combining
-     * punch-derived regular minutes (worked_minutes - that day's overtime) with manually
-     * logged regular entries. Clamped per day before summing, never negative. Also includes
-     * the employee's all-time overtime total, independent of the requested month.
+     * Regular/overtime minute totals (plus leave days taken) for the given month and for its
+     * whole year, combining punch-derived regular minutes (worked_minutes - that day's
+     * overtime) with manually logged regular entries. Clamped per day before summing, never
+     * negative. Also includes the employee's all-time overtime total, independent of month.
      *
-     * @return array{month: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string},
-     *               year: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string},
+     * @return array{month: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string, leave_days:string},
+     *               year: array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string, leave_days:string},
      *               lifetime: array{overtime_minutes:int, overtime_amount:?string}}
      */
     public function attendanceTotals(Employee $employee, ?string $month = null): array
@@ -259,12 +258,6 @@ class EmployeePortalService
 
         $totals = $this->totalsFor($employee, $fromDate->toDateString(), $toDate->toDateString());
 
-        $leaveDays = LeaveRequest::where('employee_id', $employee->id)
-            ->where('status', 'approved')
-            ->whereDate('start_date', '<=', $toDate)
-            ->whereDate('end_date', '>=', $fromDate)
-            ->sum('days');
-
         return [
             'months' => $months,
             'from' => $fromDate->toDateString(),
@@ -272,11 +265,11 @@ class EmployeePortalService
             'regular_minutes' => $totals['regular_minutes'],
             'overtime_minutes' => $totals['overtime_minutes'],
             'overtime_amount' => $totals['overtime_amount'],
-            'leave_days' => number_format((float) $leaveDays, 1, '.', ''),
+            'leave_days' => $totals['leave_days'],
         ];
     }
 
-    /** @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string} */
+    /** @return array{regular_minutes:int, overtime_minutes:int, overtime_amount:?string, leave_days:string} */
     private function totalsFor(Employee $employee, string $from, string $to): array
     {
         $workedByDate = AttendanceRecord::where('employee_id', $employee->id)
@@ -303,10 +296,19 @@ class EmployeePortalService
         $overtimeMinutes = (int) $overtimeByDate->sum('minutes');
         $overtimeAmountSum = $overtimeByDate->sum('amount');
 
+        // Any approved leave overlapping the range counts its full days, even if the leave
+        // itself spans past either edge — same simplification attendanceCalendar() accepts.
+        $leaveDays = LeaveRequest::where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $to)
+            ->whereDate('end_date', '>=', $from)
+            ->sum('days');
+
         return [
             'regular_minutes' => $punchRegularMinutes + $manualRegularMinutes,
             'overtime_minutes' => $overtimeMinutes,
             'overtime_amount' => $overtimeByDate->isNotEmpty() ? number_format((float) $overtimeAmountSum, 2, '.', '') : null,
+            'leave_days' => number_format((float) $leaveDays, 1, '.', ''),
         ];
     }
 
