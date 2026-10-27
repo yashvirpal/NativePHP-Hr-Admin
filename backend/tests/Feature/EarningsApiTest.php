@@ -67,6 +67,25 @@ class EarningsApiTest extends ApiTestCase
             ->assertJsonPath('regular_minutes', 120); // June + Nov, not May
     }
 
+    public function test_earnings_12_month_window_aggregates_the_trailing_year(): void
+    {
+        $user = $this->makeUser();
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/attendance/manual', ['work_date' => '2026-11-02', 'minutes' => 60])->assertCreated(); // in
+
+        Carbon::setTestNow('2025-12-10 08:55:00');
+        $this->postJson('/api/v1/attendance/manual', ['work_date' => '2025-12-10', 'minutes' => 60])->assertCreated(); // in (edge)
+
+        Carbon::setTestNow('2025-11-20 08:55:00');
+        $this->postJson('/api/v1/attendance/manual', ['work_date' => '2025-11-20', 'minutes' => 60])->assertCreated(); // out
+
+        Carbon::setTestNow('2026-11-02 08:55:00');
+        $this->getJson('/api/v1/earnings?months=12')->assertOk()
+            ->assertJsonPath('from', '2025-12-01')
+            ->assertJsonPath('regular_minutes', 120); // Dec 2025 + Nov 2026, not Nov 2025
+    }
+
     public function test_earnings_includes_leave_days_taken_in_the_window(): void
     {
         $user = $this->makeUser();

@@ -1,3 +1,8 @@
+@php
+    // A preset button is only "active" when a preset is actually in effect — not while a
+    // custom range is showing or applied, even if $months still holds its last value.
+    $presetVariant = fn (int $m) => (! $useCustomRange && ! $showingCustomInputs && $months === $m) ? 'primary' : 'ghost';
+@endphp
 <native:column class="w-full h-full bg-theme-background">
     <native:refreshable @refresh="refresh" class="w-full flex-1">
         <native:column class="w-full p-4 gap-5">
@@ -8,24 +13,31 @@
             <native:column class="w-full gap-2">
                 <native:text class="text-xs font-bold text-theme-on-surface-variant">Period</native:text>
                 <native:row class="w-full gap-2">
-                    <native:button class="flex-1" label="1 month" variant="{{ ! $useCustomRange && $months === 1 ? 'primary' : 'ghost' }}" size="sm" @press="selectPeriod(1)" />
-                    <native:button class="flex-1" label="3 months" variant="{{ ! $useCustomRange && $months === 3 ? 'primary' : 'ghost' }}" size="sm" @press="selectPeriod(3)" />
-                    <native:button class="flex-1" label="6 months" variant="{{ ! $useCustomRange && $months === 6 ? 'primary' : 'ghost' }}" size="sm" @press="selectPeriod(6)" />
+                    <native:button class="flex-1" label="1 month" variant="{{ $presetVariant(1) }}" size="sm" @press="selectPeriod(1)" />
+                    <native:button class="flex-1" label="3 months" variant="{{ $presetVariant(3) }}" size="sm" @press="selectPeriod(3)" />
+                    <native:button class="flex-1" label="6 months" variant="{{ $presetVariant(6) }}" size="sm" @press="selectPeriod(6)" />
+                    <native:button class="flex-1" label="1 year" variant="{{ $presetVariant(12) }}" size="sm" @press="selectPeriod(12)" />
                 </native:row>
                 <native:button label="Custom range" variant="{{ $useCustomRange || $showingCustomInputs ? 'primary' : 'ghost' }}" size="sm" @press="showCustomRange" />
             </native:column>
 
             @if ($showingCustomInputs)
                 <native:column class="w-full p-3 gap-3 rounded-2xl bg-theme-surface-variant/40">
-                    <native:outlined-text-input
-                        label="From (YYYY-MM-DD)"
-                        native:model="customFrom"
+                    <native:date-picker
+                        label="From"
+                        mode="date"
+                        value="{{ $customFrom }}"
+                        @change="setCustomFrom"
+                        max="{{ now()->toDateString() }}"
                         :is-error="($fieldErrors['customFrom'] ?? '') !== ''"
-                        :supporting="$fieldErrors['customFrom'] ?? 'E.g. 2026-08-01.'"
+                        :supporting="$fieldErrors['customFrom'] ?? ''"
                     />
-                    <native:outlined-text-input
-                        label="To (YYYY-MM-DD)"
-                        native:model="customTo"
+                    <native:date-picker
+                        label="To"
+                        mode="date"
+                        value="{{ $customTo }}"
+                        @change="setCustomTo"
+                        max="{{ now()->toDateString() }}"
                         :is-error="($fieldErrors['customTo'] ?? '') !== ''"
                         :supporting="$fieldErrors['customTo'] ?? 'Cannot be after today.'"
                     />

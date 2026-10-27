@@ -14,7 +14,7 @@ class EarningsController extends ApiController
     public function index(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'months' => ['nullable', 'integer', 'in:1,3,6'],
+            'months' => ['nullable', 'integer', 'in:1,3,6,12'],
             'from' => ['nullable', 'date', 'required_with:to'],
             'to' => ['nullable', 'date', 'required_with:from', 'after_or_equal:from', 'before_or_equal:today'],
         ]);

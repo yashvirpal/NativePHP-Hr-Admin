@@ -802,9 +802,9 @@ class ScreensTest extends TestCase
 
         Native::test(Earning::class)
             ->tap('Custom range')
-            ->assertSee('From (YYYY-MM-DD)')
-            ->set('customFrom', '2026-08-01')
-            ->set('customTo', '2026-08-31')
+            ->assertPicker('From', 'date')
+            ->pickDate('setCustomFrom', '2026-08-01')
+            ->pickDate('setCustomTo', '2026-08-31')
             ->tap('Apply')
             ->assertSee('01 Aug 2026 - 31 Aug 2026')
             ->assertSee('1h 0m')
@@ -823,12 +823,73 @@ class ScreensTest extends TestCase
 
         Native::test(Earning::class)
             ->tap('Custom range')
-            ->set('customFrom', '2026-08-31')
-            ->set('customTo', '2026-08-01')
+            ->pickDate('setCustomFrom', '2026-08-31')
+            ->pickDate('setCustomTo', '2026-08-01')
             ->tap('Apply')
             ->assertSee('The start date must be before the end date.');
 
         Http::assertSentCount(1); // only the initial monthly load, not the invalid custom range
+    }
+
+    public function test_earning_custom_range_prefills_a_default_window(): void
+    {
+        $this->signIn();
+        $from = now()->subDays(30)->toDateString();
+        $to = now()->toDateString();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => null, 'from' => $from, 'to' => $to,
+            'regular_minutes' => 0, 'overtime_minutes' => 0, 'overtime_amount' => null, 'leave_days' => '0.0',
+        ])]);
+
+        // The picker can't start empty - iOS's compact date-picker never commits a selection
+        // until it has adopted a non-empty value at least once, so a sensible default window
+        // is pre-filled the moment the custom-range panel opens.
+        Native::test(Earning::class)
+            ->tap('Custom range')
+            ->assertPickerValue('From', $from)
+            ->assertPickerValue('To', $to)
+            ->tap('Apply');
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE."/earnings?from={$from}&to={$to}");
+    }
+
+    public function test_earning_custom_range_deselects_the_preset_tabs(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => null, 'from' => '2026-08-01', 'to' => '2026-08-31',
+            'regular_minutes' => 60, 'overtime_minutes' => 0, 'overtime_amount' => null, 'leave_days' => '0.0',
+        ])]);
+
+        $earning = Native::test(Earning::class)
+            ->tap('Custom range')
+            ->assertSet('showingCustomInputs', true)
+            ->assertSet('useCustomRange', false);
+
+        // The "1 month" preset is still the last-known $months value, but it must not render
+        // as selected while the custom-range panel is open — this is the bug being guarded.
+        $earning->pickDate('setCustomFrom', '2026-08-01')
+            ->pickDate('setCustomTo', '2026-08-31')
+            ->tap('Apply')
+            ->assertSet('useCustomRange', true);
+    }
+
+    public function test_earning_adds_a_yearly_preset(): void
+    {
+        $this->signIn();
+        Http::fake([self::BASE.'/earnings*' => Http::response([
+            'months' => 12, 'from' => '2025-12-01', 'to' => '2026-11-30',
+            'regular_minutes' => 6060, 'overtime_minutes' => 120, 'overtime_amount' => '400.00', 'leave_days' => '3.0',
+        ])]);
+
+        Native::test(Earning::class)
+            ->tap('1 year')
+            ->assertSee('01 Dec 2025 - 30 Nov 2026')
+            ->assertSee('101h 0m')
+            ->assertSee('2h 0m')
+            ->assertSee('400.00');
+
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/earnings?months=12');
     }
 
     // ─── Navigation chrome ──────────────────────────────────────────────────────

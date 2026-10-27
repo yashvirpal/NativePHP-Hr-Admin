@@ -8,7 +8,7 @@ use Illuminate\View\View;
 /** Regular hours, overtime hours/amount and leave days taken, over a selectable period. */
 class Earning extends Screen
 {
-    /** 1 | 3 | 6 - ignored while a custom range is active. */
+    /** 1 | 3 | 6 | 12 - ignored while a custom range is active. */
     public int $months = 1;
 
     public bool $useCustomRange = false;
@@ -54,13 +54,39 @@ class Earning extends Screen
     {
         $this->useCustomRange = false;
         $this->showingCustomInputs = false;
-        $this->months = in_array($months, [1, 3, 6], true) ? $months : 1;
+        $this->months = in_array($months, [1, 3, 6, 12], true) ? $months : 1;
         $this->load();
     }
 
     public function showCustomRange(): void
     {
         $this->showingCustomInputs = true;
+
+        // iOS's compact date-picker never commits a selection until it has adopted a non-empty
+        // value at least once (its internal "has a real selection" flag only flips on an inbound
+        // value or its own placeholder tap) - so these can't start as empty strings.
+        if ($this->customFrom === '') {
+            $this->customFrom = now()->subDays(30)->toDateString();
+        }
+
+        if ($this->customTo === '') {
+            $this->customTo = now()->toDateString();
+        }
+    }
+
+    /**
+     * Bound to the date-pickers' @change, not native:model — @change hands us the committed
+     * ISO value directly as a parameter, so there's no dependency on sync timing between a
+     * picker's own round-trip and a later button press.
+     */
+    public function setCustomFrom(string $value): void
+    {
+        $this->customFrom = $value;
+    }
+
+    public function setCustomTo(string $value): void
+    {
+        $this->customTo = $value;
     }
 
     public function applyCustomRange(): void
