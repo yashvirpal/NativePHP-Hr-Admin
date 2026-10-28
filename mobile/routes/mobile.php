@@ -16,6 +16,7 @@ use App\NativeComponents\ManualHoursCreate;
 use App\NativeComponents\More;
 use App\NativeComponents\Overtime;
 use App\NativeComponents\OvertimeRate;
+use App\NativeComponents\Register;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,6 +40,7 @@ Route::nativeGroup(MainTabsLayout::class, function () {
 // Screens pushed on top of a tab (with a back button, no tab bar).
 Route::nativeGroup(StackLayout::class, function () {
     Route::native('/forgot-password', ForgotPassword::class);
+    Route::native('/register', Register::class);
     Route::native('/attendance/manual', ManualHoursCreate::class);
     Route::native('/overtime/rate', OvertimeRate::class);
     Route::native('/earning', Earning::class);

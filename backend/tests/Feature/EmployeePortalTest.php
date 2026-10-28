@@ -27,6 +27,34 @@ class EmployeePortalTest extends ApiTestCase
         $this->assertGuest('admin');
     }
 
+    public function test_employee_can_self_register_and_is_signed_in(): void
+    {
+        $this->post('/employee/register', [
+            'name' => 'Jamie Employee', 'email' => 'jamie@example.com',
+            'password' => 'password123', 'password_confirmation' => 'password123',
+        ])->assertRedirect('/employee');
+
+        $user = User::where('email', 'jamie@example.com')->firstOrFail();
+        $this->assertAuthenticatedAs($user, 'web');
+
+        $employee = $user->employee;
+        $this->assertSame('active', $employee->status);
+        $this->assertNull($employee->department_id);
+        $this->assertNull($employee->shift_id);
+    }
+
+    public function test_registration_requires_a_unique_email(): void
+    {
+        $existing = $this->makeUser();
+
+        $this->post('/employee/register', [
+            'name' => 'Someone Else', 'email' => $existing->email,
+            'password' => 'password123', 'password_confirmation' => 'password123',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest('web');
+    }
+
     public function test_admin_credentials_cannot_sign_in_to_the_employee_portal(): void
     {
         $admin = $this->makeAdmin();

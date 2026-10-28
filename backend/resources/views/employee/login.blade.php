@@ -18,6 +18,7 @@
         <a href="{{ route('employee.password.request') }}" style="font-size:13px">Forgot password?</a>
     </div>
     <button style="width:100%;justify-content:center">Sign in</button>
-    <p class="muted" style="margin:16px 0 0;font-size:13px">HR staff? <a href="{{ route('admin.login') }}">Admin sign in</a></p>
+    <p class="muted" style="margin:16px 0 0;font-size:13px">New here? <a href="{{ route('employee.register') }}">Create an account</a></p>
+    <p class="muted" style="margin:6px 0 0;font-size:13px">HR staff? <a href="{{ route('admin.login') }}">Admin sign in</a></p>
 </form>
 @endsection

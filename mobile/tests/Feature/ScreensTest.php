@@ -15,6 +15,7 @@ use App\NativeComponents\ManualHoursCreate;
 use App\NativeComponents\More;
 use App\NativeComponents\Overtime;
 use App\NativeComponents\OvertimeRate;
+use App\NativeComponents\Register;
 use App\Services\Api\TokenStore;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -123,6 +124,77 @@ class ScreensTest extends TestCase
             ->assertSee('Enter your password.');
 
         Http::assertNothingSent();
+    }
+
+    public function test_login_links_to_create_account(): void
+    {
+        Http::fake();
+
+        Native::test(Login::class)->tap('Create account')->assertNavigatedTo('/register');
+    }
+
+    // ─── Register ───────────────────────────────────────────────────────────────
+
+    public function test_register_creates_an_account_and_opens_home(): void
+    {
+        Http::fake([self::BASE.'/auth/register' => Http::response(['token' => 'new-token', 'user' => ['name' => 'Jamie']], 201)]);
+
+        Native::test(Register::class)
+            ->set('name', 'Jamie Employee')
+            ->set('email', 'jamie@example.com')
+            ->set('password', 'password123')
+            ->set('passwordConfirmation', 'password123')
+            ->tap('Create account')
+            ->assertReplacedWith('/home');
+
+        $this->assertSame('new-token', app(TokenStore::class)->get());
+        Http::assertSent(fn (Request $r) => $r->url() === self::BASE.'/auth/register'
+            && $r->data()['name'] === 'Jamie Employee' && $r->data()['email'] === 'jamie@example.com'
+            && $r->data()['password'] === 'password123' && $r->data()['password_confirmation'] === 'password123');
+    }
+
+    public function test_register_requires_all_fields_without_calling_the_server(): void
+    {
+        Http::fake();
+
+        Native::test(Register::class)
+            ->tap('Create account')
+            ->assertSee('Enter your name.')
+            ->assertSee('Enter a valid email.')
+            ->assertSee('Enter a password.');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_register_validates_matching_passwords_without_calling_the_server(): void
+    {
+        Http::fake();
+
+        Native::test(Register::class)
+            ->set('name', 'Jamie Employee')
+            ->set('email', 'jamie@example.com')
+            ->set('password', 'password123')
+            ->set('passwordConfirmation', 'different')
+            ->tap('Create account')
+            ->assertSee('Passwords do not match.');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_register_shows_the_servers_validation_error(): void
+    {
+        Http::fake(['*' => Http::response(['message' => 'The email has already been taken.', 'errors' => ['email' => ['The email has already been taken.']]], 422)]);
+
+        Native::test(Register::class)
+            ->set('name', 'Jamie Employee')
+            ->set('email', 'taken@example.com')
+            ->set('password', 'password123')
+            ->set('passwordConfirmation', 'password123')
+            ->tap('Create account')
+            ->assertSee('The email has already been taken.')
+            ->assertNoNavigation();
+
+        $this->assertFalse(app(TokenStore::class)->has());
     }
 
     // ─── Home / punch ───────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 | back-office staff use the web admin panel with the separate "admin" guard.
 */
 Route::prefix('v1')->group(function () {
+    Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
     Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 

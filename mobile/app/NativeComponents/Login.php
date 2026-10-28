@@ -15,6 +15,11 @@ class Login extends Screen
         $this->navigate('/forgot-password');
     }
 
+    public function createAccount(): void
+    {
+        $this->navigate('/register');
+    }
+
     public function signIn(): void
     {
         $email = trim($this->email);

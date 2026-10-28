@@ -16,6 +16,11 @@ Route::prefix('employee')->name('employee.')->group(function () {
     Route::post('login', [Employee\AuthController::class, 'login'])->middleware(['guest:web', 'throttle:5,1']);
     Route::post('logout', [Employee\AuthController::class, 'logout'])->name('logout')->middleware('auth:web');
 
+    Route::middleware('guest:web')->group(function () {
+        Route::get('register', [Employee\RegisterController::class, 'showRegister'])->name('register');
+        Route::post('register', [Employee\RegisterController::class, 'register'])->middleware('throttle:10,1');
+    });
+
     Route::middleware('guest:web')->prefix('password')->name('password.')->group(function () {
         Route::get('forgot', [Employee\PasswordResetController::class, 'showForgot'])->name('request');
         Route::post('forgot', [Employee\PasswordResetController::class, 'sendResetLink'])

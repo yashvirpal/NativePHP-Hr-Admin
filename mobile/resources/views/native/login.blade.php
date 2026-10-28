@@ -31,4 +31,5 @@
 
     <native:button label="Sign in" :loading="$busy" @press="signIn" />
     <native:button label="Forgot password?" variant="ghost" @press="forgotPassword" />
+    <native:button label="Create account" variant="ghost" @press="createAccount" />
 </native:column>

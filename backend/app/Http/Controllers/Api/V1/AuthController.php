@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\User;
+use App\Services\RegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,23 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends ApiController
 {
+    public function register(Request $request, RegistrationService $registration): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'device_name' => ['required', 'string', 'max:100'],
+        ]);
+
+        $employee = $registration->register($data['name'], $data['email'], $data['password']);
+
+        return response()->json([
+            'token' => $employee->user->createToken($data['device_name'])->plainTextToken,
+            'user' => $employee->user,
+        ], 201);
+    }
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([

@@ -19,6 +19,22 @@ class HrApi
 
     // ─── Auth ───────────────────────────────────────────────────────────────────
 
+    /** Creates a new account, signs in, and stores the token. @return array the new user */
+    public function register(string $name, string $email, string $password, string $passwordConfirmation): array
+    {
+        $data = $this->send('POST', 'auth/register', [
+            'name' => $name,
+            'email' => $email,
+            'password' => $password,
+            'password_confirmation' => $passwordConfirmation,
+            'device_name' => config('hr.device_name'),
+        ], authenticated: false);
+
+        $this->tokens->put($data['token']);
+
+        return $data['user'];
+    }
+
     /** Signs in and stores the token. @return array the signed-in user (with employee profile) */
     public function login(string $email, string $password): array
     {
