@@ -14,7 +14,7 @@ class Holidays extends Screen
 
     public function navTitle(): string
     {
-        return 'Holidays';
+        return __('Holidays');
     }
 
     public function mount(): void

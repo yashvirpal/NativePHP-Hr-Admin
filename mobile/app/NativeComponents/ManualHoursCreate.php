@@ -45,7 +45,7 @@ class ManualHoursCreate extends Screen
 
     public function navTitle(): string
     {
-        return 'Log hours';
+        return __('Log hours');
     }
 
     public function mount(): void
@@ -87,7 +87,7 @@ class ManualHoursCreate extends Screen
 
         if ($regular === '' && $overtime === '' && ! $this->markLeave) {
             $this->error = '';
-            $this->fieldErrors = ['regularHours' => 'Enter regular and/or overtime hours, or mark this day as leave.'];
+            $this->fieldErrors = ['regularHours' => __('Enter regular and/or overtime hours, or mark this day as leave.')];
 
             return;
         }
@@ -99,14 +99,14 @@ class ManualHoursCreate extends Screen
 
             if (! is_numeric($value) || (float) $value <= 0) {
                 $this->error = '';
-                $this->fieldErrors = [$field => 'Enter a number of hours greater than 0.'];
+                $this->fieldErrors = [$field => __('Enter a number of hours greater than 0.')];
 
                 return;
             }
 
             if ((float) $value > 24) {
                 $this->error = '';
-                $this->fieldErrors = [$field => "Hours can't be more than 24 for a single day."];
+                $this->fieldErrors = [$field => __("Hours can't be more than 24 for a single day.")];
 
                 return;
             }
@@ -114,7 +114,7 @@ class ManualHoursCreate extends Screen
 
         if ($this->markLeave && $leaveEnd < $this->workDate) {
             $this->error = '';
-            $this->fieldErrors = ['leaveEndDate' => 'The end date must be on or after the start date.'];
+            $this->fieldErrors = ['leaveEndDate' => __('The end date must be on or after the start date.')];
 
             return;
         }
@@ -135,7 +135,7 @@ class ManualHoursCreate extends Screen
                 return;
             }
 
-            $messages[] = 'Regular hours saved';
+            $messages[] = __('Regular hours saved');
         }
 
         if ($overtime !== '' && self::toMinutes($overtime) !== $this->initialOvertimeMinutes) {
@@ -149,7 +149,7 @@ class ManualHoursCreate extends Screen
             }
 
             $amount = $result['amount'] ?? null;
-            $messages[] = $amount !== null ? "Overtime saved - {$amount}" : 'Overtime saved';
+            $messages[] = $amount !== null ? __('Overtime saved - :amount', ['amount' => $amount]) : __('Overtime saved');
         }
 
         if ($this->markLeave) {
@@ -161,7 +161,7 @@ class ManualHoursCreate extends Screen
                 return;
             }
 
-            $messages[] = 'Marked as leave';
+            $messages[] = __('Marked as leave');
         }
 
         $this->busy = false;

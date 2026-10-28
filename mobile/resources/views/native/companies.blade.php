@@ -5,14 +5,14 @@
                 <native:text class="text-sm text-theme-destructive">{{ $error }}</native:text>
             @endif
 
-            <native:button label="Add company" variant="primary" @press="add" />
+            <native:button label="{{ __('Add company') }}" variant="primary" @press="add" />
 
             @forelse ($companies as $c)
                 <native:column class="w-full p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
                     <native:row class="w-full items-center justify-between">
                         <native:text class="text-base font-bold text-theme-on-surface">{{ $c['name'] }}</native:text>
                         @if ($c['is_current'])
-                            <native:text class="text-sm font-bold text-theme-primary">Current</native:text>
+                            <native:text class="text-sm font-bold text-theme-primary">{{ __('Current') }}</native:text>
                         @endif
                     </native:row>
                     <native:text class="text-sm text-theme-on-surface-variant">{{ $c['period'] }}</native:text>
@@ -20,12 +20,12 @@
                         <native:text class="text-sm text-theme-on-surface-variant">{{ collect([$c['designation'], $c['industry']])->filter()->implode(' - ') }}</native:text>
                     @endif
                     <native:row class="w-full gap-2">
-                        <native:button label="Edit" variant="ghost" size="sm" @press="edit({{ $c['id'] }})" />
-                        <native:button label="Remove" variant="ghost" size="sm" @press="confirmRemove({{ $c['id'] }})" />
+                        <native:button label="{{ __('Edit') }}" variant="ghost" size="sm" @press="edit({{ $c['id'] }})" />
+                        <native:button label="{{ __('Remove') }}" variant="ghost" size="sm" @press="confirmRemove({{ $c['id'] }})" />
                     </native:row>
                 </native:column>
             @empty
-                <native:text class="text-base text-theme-on-surface-variant">No companies yet. Add your employer details.</native:text>
+                <native:text class="text-base text-theme-on-surface-variant">{{ __('No companies yet. Add your employer details.') }}</native:text>
             @endforelse
         </native:column>
     </native:refreshable>

@@ -17,6 +17,7 @@ use App\NativeComponents\Overtime;
 use App\NativeComponents\OvertimeRate;
 use App\NativeComponents\Register;
 use App\Services\Api\TokenStore;
+use App\Services\LocalePreference;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
@@ -232,6 +233,26 @@ class ScreensTest extends TestCase
             ->assertSee('100h 5m')
             ->assertSee('10h 0m')
             ->assertSee('2000.00');
+    }
+
+    public function test_home_renders_in_hindi_once_that_language_is_selected(): void
+    {
+        $this->signIn();
+        app(LocalePreference::class)->put('hi');
+        Http::fake([
+            self::BASE.'/dashboard' => Http::response($this->dashboard()),
+            self::BASE.'/attendance/totals*' => Http::response([
+                'month' => ['regular_minutes' => 125, 'overtime_minutes' => 60, 'overtime_amount' => '200.00', 'leave_days' => '4.0'],
+                'year' => ['regular_minutes' => 6005, 'overtime_minutes' => 600, 'overtime_amount' => '2000.00'],
+                'lifetime' => ['overtime_minutes' => 900, 'overtime_amount' => '3000.00'],
+            ]),
+        ]);
+
+        Native::test(Home::class)
+            ->assertSee('आज')
+            ->assertSee('पंच इन नहीं किया')
+            ->assertSee('इस महीने')
+            ->assertSee('अवकाश');
     }
 
     public function test_an_expired_session_sends_the_user_to_login(): void
@@ -923,6 +944,28 @@ class ScreensTest extends TestCase
         Http::fake(['*' => Http::response([])]);
 
         Native::test(More::class)->tap('Earning')->assertNavigatedTo('/earning');
+    }
+
+    public function test_more_defaults_to_english_and_can_switch_to_hindi(): void
+    {
+        $this->signIn();
+        Http::fake(['*' => Http::response([])]);
+
+        Native::test(More::class)
+            ->assertSet('locale', 'en')
+            ->tap('हिन्दी')
+            ->assertSet('locale', 'hi');
+
+        $this->assertSame('hi', app(LocalePreference::class)->get());
+    }
+
+    public function test_more_remembers_the_chosen_language_on_reopen(): void
+    {
+        $this->signIn();
+        Http::fake(['*' => Http::response([])]);
+        app(LocalePreference::class)->put('hi');
+
+        Native::test(More::class)->assertSet('locale', 'hi');
     }
 
     // ─── Earning ────────────────────────────────────────────────────────────────

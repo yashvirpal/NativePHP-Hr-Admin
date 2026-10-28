@@ -7,25 +7,25 @@
         <native:column class="w-full p-4 gap-2 rounded-2xl bg-theme-surface-variant/40">
             <native:row class="w-full items-center justify-between">
                 <native:column class="gap-1">
-                    <native:text class="text-xs font-bold text-theme-on-surface-variant">Your hourly rate</native:text>
+                    <native:text class="text-xs font-bold text-theme-on-surface-variant">{{ __('Your hourly rate') }}</native:text>
                     @if ($rate !== '')
-                        <native:text class="text-2xl font-bold text-theme-accent">{{ $rate }} / hr</native:text>
+                        <native:text class="text-2xl font-bold text-theme-accent">{{ __(':rate / hr', ['rate' => $rate]) }}</native:text>
                     @else
-                        <native:text class="text-xl font-bold text-theme-on-surface">Not set</native:text>
+                        <native:text class="text-xl font-bold text-theme-on-surface">{{ __('Not set') }}</native:text>
                     @endif
                 </native:column>
-                <native:button label="{{ $rate !== '' ? 'Change rate' : 'Set rate' }}" variant="primary" size="sm" @press="changeRate" />
+                <native:button label="{{ $rate !== '' ? __('Change rate') : __('Set rate') }}" variant="primary" size="sm" @press="changeRate" />
             </native:row>
         </native:column>
 
         <native:row class="w-full items-center justify-between">
-            <native:button label="Prev" variant="ghost" size="sm" @press="previousMonth" />
+            <native:button label="{{ __('Prev') }}" variant="ghost" size="sm" @press="previousMonth" />
             <native:text class="text-lg font-bold text-theme-on-surface">{{ $monthLabel }}</native:text>
-            <native:button label="Next" variant="ghost" size="sm" :disabled="! $canGoNext" @press="nextMonth" />
+            <native:button label="{{ __('Next') }}" variant="ghost" size="sm" :disabled="! $canGoNext" @press="nextMonth" />
         </native:row>
 
         <native:row class="w-full items-center justify-between">
-            <native:text class="text-sm font-bold text-theme-on-surface-variant">My overtime</native:text>
+            <native:text class="text-sm font-bold text-theme-on-surface-variant">{{ __('My overtime') }}</native:text>
             <native:text class="text-sm font-bold text-theme-accent">
                 {{ $totalDuration }}@if ($totalAmount !== null) - {{ $totalAmount }} @endif
             </native:text>
@@ -38,7 +38,7 @@
                 <native:column class="w-full p-3 gap-2 rounded-2xl bg-theme-surface-variant/40">
                     <native:row class="w-full items-center justify-between">
                         <native:text class="text-base font-bold text-theme-on-surface">{{ $r['date'] }}</native:text>
-                        <native:text class="text-base font-bold text-theme-accent">{{ $r['amount'] ?? 'No rate set' }}</native:text>
+                        <native:text class="text-base font-bold text-theme-accent">{{ $r['amount'] ?? __('No rate set') }}</native:text>
                     </native:row>
                     <native:row class="w-full items-center justify-between">
                         <native:text class="text-sm text-theme-on-surface-variant">{{ $r['duration'] }}</native:text>
@@ -51,7 +51,7 @@
                     @endif
                 </native:column>
             @empty
-                <native:text class="text-base text-theme-on-surface-variant">No overtime logged for {{ $monthLabel }}.</native:text>
+                <native:text class="text-base text-theme-on-surface-variant">{{ __('No overtime logged for :month.', ['month' => $monthLabel]) }}</native:text>
             @endforelse
         </native:column>
     </native:refreshable>

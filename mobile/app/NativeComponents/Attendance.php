@@ -60,7 +60,7 @@ class Attendance extends Screen
 
     public function navTitle(): string
     {
-        return 'Attendance';
+        return __('Attendance');
     }
 
     public function activeTab(): ?string
@@ -131,12 +131,16 @@ class Attendance extends Screen
                 'day' => Carbon::parse($r['work_date'])->day,
                 'dateLabel' => Format::date($r['work_date'], 'D, d M'),
                 'detail' => match (true) {
-                    ! empty($r['first_in_at']) => 'In '.Format::time($r['first_in_at']).' - Out '.Format::time($r['last_out_at'] ?? null).' - '.Format::minutes($worked),
-                    $statusKey === 'leave' => 'On leave',
-                    $statusKey === 'logged' => 'Logged manually (no punch)',
-                    default => 'No punches recorded',
+                    ! empty($r['first_in_at']) => __('In :in - Out :out - :duration', [
+                        'in' => Format::time($r['first_in_at']),
+                        'out' => Format::time($r['last_out_at'] ?? null),
+                        'duration' => Format::minutes($worked),
+                    ]),
+                    $statusKey === 'leave' => __('On leave'),
+                    $statusKey === 'logged' => __('Logged manually (no punch)'),
+                    default => __('No punches recorded'),
                 },
-                'status' => $statusKey === 'leave' ? (string) ($r['leave_type'] ?? 'Leave') : Format::status($statusKey),
+                'status' => $statusKey === 'leave' ? (string) ($r['leave_type'] ?? __('Leave')) : Format::status($statusKey),
                 'statusKey' => $statusKey,
                 'regularMinutes' => (int) ($r['regular_minutes'] ?? 0),
                 'overtimeMinutes' => (int) ($r['overtime_minutes'] ?? 0),

@@ -37,7 +37,7 @@ class MainTabsLayout extends NativeLayout
         $bar = TabBar::make()->labelVisibility('labeled');
 
         foreach (self::TABS as [$label, $url, $icon]) {
-            $bar->add(Tab::link($label, $url, icon: $icon)->active($url === $current));
+            $bar->add(Tab::link(__($label), $url, icon: $icon)->active($url === $current));
         }
 
         return $bar;

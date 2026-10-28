@@ -5,7 +5,9 @@ namespace App\NativeComponents;
 use App\Services\Api\ApiException;
 use App\Services\Api\HrApi;
 use App\Services\Api\TokenStore;
+use App\Services\LocalePreference;
 use Closure;
+use Illuminate\Support\Facades\App;
 use Native\Mobile\Edge\NativeComponent;
 
 /**
@@ -23,6 +25,15 @@ abstract class Screen extends NativeComponent
 
     /** True while an API call triggered by a button is running. */
     public bool $busy = false;
+
+    /**
+     * Applies the employee's stored language choice as soon as the screen is instantiated,
+     * so every __() call made while building this screen's title/view uses it.
+     */
+    public function __construct()
+    {
+        App::setLocale(app(LocalePreference::class)->get());
+    }
 
     protected function api(): HrApi
     {

@@ -11,7 +11,7 @@ class ForgotPassword extends Screen
 
     public function navTitle(): string
     {
-        return 'Forgot password';
+        return __('Forgot password');
     }
 
     public function send(): void
@@ -21,7 +21,7 @@ class ForgotPassword extends Screen
         $this->fieldErrors = [];
         if ($email === '' || ! str_contains($email, '@')) {
             $this->error = '';
-            $this->fieldErrors = ['email' => 'Enter a valid email.'];
+            $this->fieldErrors = ['email' => __('Enter a valid email.')];
 
             return;
         }
@@ -31,7 +31,7 @@ class ForgotPassword extends Screen
         $this->busy = false;
 
         if ($sent !== null) {
-            Dialog::toast('Reset link sent. Check your email.', 'long');
+            Dialog::toast(__('Reset link sent. Check your email.'), 'long');
             $this->back();
         }
     }

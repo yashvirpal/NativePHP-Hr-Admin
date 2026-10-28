@@ -12,7 +12,7 @@ class Leave extends Screen
 
     public function navTitle(): string
     {
-        return 'Leave';
+        return __('Leave');
     }
 
     public function activeTab(): ?string
@@ -46,7 +46,7 @@ class Leave extends Screen
             $same = ($r['start_date'] ?? null) === ($r['end_date'] ?? null);
 
             return [
-                'type' => (string) ($r['leave_type']['name'] ?? 'Leave'),
+                'type' => (string) ($r['leave_type']['name'] ?? __('Leave')),
                 'period' => $same
                     ? Format::date($r['start_date'], 'd M Y')
                     : Format::date($r['start_date'], 'd M').' - '.Format::date($r['end_date'], 'd M Y'),

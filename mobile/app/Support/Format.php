@@ -44,7 +44,7 @@ final class Format
 
     public static function status(?string $status): string
     {
-        return ucfirst(str_replace('_', ' ', (string) $status));
+        return __(ucfirst(str_replace('_', ' ', (string) $status)));
     }
 
     private static function parse(?string $value): ?Carbon

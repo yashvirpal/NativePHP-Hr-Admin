@@ -22,7 +22,7 @@ class OvertimeRate extends Screen
 
     public function navTitle(): string
     {
-        return 'Overtime rate';
+        return __('Overtime rate');
     }
 
     public function mount(): void
@@ -37,7 +37,7 @@ class OvertimeRate extends Screen
 
         if (! preg_match('/^\d{1,5}(\.\d{1,2})?$/', $value)) {
             $this->error = '';
-            $this->fieldErrors = ['hourly_rate' => 'Enter an amount like 150 or 175.50.'];
+            $this->fieldErrors = ['hourly_rate' => __('Enter an amount like 150 or 175.50.')];
 
             return;
         }
@@ -48,7 +48,7 @@ class OvertimeRate extends Screen
 
         if ($saved !== null) {
             $this->apply($saved);
-            Dialog::toast('Hourly rate updated', 'short');
+            Dialog::toast(__('Hourly rate updated'), 'short');
             $this->back();
         }
     }

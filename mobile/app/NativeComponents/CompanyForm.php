@@ -33,7 +33,7 @@ class CompanyForm extends Screen
 
     public function navTitle(): string
     {
-        return $this->companyId ? 'Edit company' : 'Add company';
+        return $this->companyId ? __('Edit company') : __('Add company');
     }
 
     public function mount(): void
@@ -75,7 +75,7 @@ class CompanyForm extends Screen
         $this->busy = false;
 
         if ($saved !== null) {
-            Dialog::toast('Company saved', 'short');
+            Dialog::toast(__('Company saved'), 'short');
             $this->back();
         }
     }

@@ -14,7 +14,7 @@ class Companies extends Screen
 
     public function navTitle(): string
     {
-        return 'My companies';
+        return __('My companies');
     }
 
     public function mount(): void
@@ -48,11 +48,11 @@ class Companies extends Screen
 
     public function confirmRemove(int $id): void
     {
-        Dialog::alert('Remove company?', 'It will be removed from your profile.', [
-            ['label' => 'Keep it', 'style' => 'cancel'],
-            ['label' => 'Remove', 'style' => 'destructive'],
+        Dialog::alert(__('Remove company?'), __('It will be removed from your profile.'), [
+            ['label' => __('Keep it'), 'style' => 'cancel'],
+            ['label' => __('Remove'), 'style' => 'destructive'],
         ])->buttonPressed(function ($event) use ($id) {
-            if ($event->label === 'Remove') {
+            if ($event->label === __('Remove')) {
                 $this->remove($id);
             }
         });
@@ -65,7 +65,7 @@ class Companies extends Screen
         $this->busy = false;
 
         if ($this->error === '') {
-            Dialog::toast('Company removed', 'short');
+            Dialog::toast(__('Company removed'), 'short');
             $this->load();
         }
     }
@@ -93,7 +93,7 @@ class Companies extends Screen
                 'ended_on' => (string) ($c['ended_on'] ?? ''),
                 'is_current' => $current,
                 'period' => ($c['started_on'] ? Format::date($c['started_on'], 'M Y') : '?')
-                    .' - '.($current ? 'Present' : ($c['ended_on'] ? Format::date($c['ended_on'], 'M Y') : '?')),
+                    .' - '.($current ? __('Present') : ($c['ended_on'] ? Format::date($c['ended_on'], 'M Y') : '?')),
             ];
         })->all();
     }

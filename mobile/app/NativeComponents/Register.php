@@ -16,7 +16,7 @@ class Register extends Screen
 
     public function navTitle(): string
     {
-        return 'Create account';
+        return __('Create account');
     }
 
     public function signUp(): void
@@ -26,10 +26,10 @@ class Register extends Screen
 
         $this->error = '';
         $this->fieldErrors = array_filter([
-            'name' => $name === '' ? 'Enter your name.' : '',
-            'email' => $email === '' || ! str_contains($email, '@') ? 'Enter a valid email.' : '',
-            'password' => $this->password === '' ? 'Enter a password.' : '',
-            'passwordConfirmation' => $this->passwordConfirmation !== $this->password ? 'Passwords do not match.' : '',
+            'name' => $name === '' ? __('Enter your name.') : '',
+            'email' => $email === '' || ! str_contains($email, '@') ? __('Enter a valid email.') : '',
+            'password' => $this->password === '' ? __('Enter a password.') : '',
+            'passwordConfirmation' => $this->passwordConfirmation !== $this->password ? __('Passwords do not match.') : '',
         ]);
 
         if ($this->fieldErrors !== []) {

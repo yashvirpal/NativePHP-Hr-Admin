@@ -28,8 +28,8 @@ class Login extends Screen
         if ($email === '' || $this->password === '') {
             $this->error = '';
             $this->fieldErrors = array_filter([
-                'email' => $email === '' ? 'Enter your email.' : '',
-                'password' => $this->password === '' ? 'Enter your password.' : '',
+                'email' => $email === '' ? __('Enter your email.') : '',
+                'password' => $this->password === '' ? __('Enter your password.') : '',
             ]);
 
             return;

@@ -5,53 +5,53 @@
         @endif
 
         <native:column class="w-full gap-1">
-            <native:text class="text-sm text-theme-on-surface-variant">Date</native:text>
+            <native:text class="text-sm text-theme-on-surface-variant">{{ __('Date') }}</native:text>
             <native:text class="text-lg font-bold text-theme-on-surface">{{ $workDate }}</native:text>
         </native:column>
 
         <native:outlined-text-input
-            label="Regular hours"
+            label="{{ __('Regular hours') }}"
             native:model="regularHours"
             keyboard="decimal"
             :is-error="($fieldErrors['regularHours'] ?? '') !== ''"
-            :supporting="$fieldErrors['regularHours'] ?? 'E.g. 1.5. Max 24. Leave blank to leave unchanged.'"
+            :supporting="$fieldErrors['regularHours'] ?? __('E.g. 1.5. Max 24. Leave blank to leave unchanged.')"
         />
 
         <native:outlined-text-input
-            label="Overtime hours"
+            label="{{ __('Overtime hours') }}"
             native:model="overtimeHours"
             keyboard="decimal"
             :is-error="($fieldErrors['overtimeHours'] ?? '') !== ''"
-            :supporting="$fieldErrors['overtimeHours'] ?? 'E.g. 1.5. Max 24. Leave blank to leave unchanged.'"
+            :supporting="$fieldErrors['overtimeHours'] ?? __('E.g. 1.5. Max 24. Leave blank to leave unchanged.')"
         />
 
         @if ($onLeave)
             <native:column class="w-full p-3 gap-1 rounded-2xl bg-theme-surface-variant/40">
-                <native:text class="text-sm font-bold text-theme-leave">On leave</native:text>
+                <native:text class="text-sm font-bold text-theme-leave">{{ __('On leave') }}</native:text>
                 <native:text class="text-sm text-theme-on-surface-variant">
-                    Marked as {{ $leaveTypeName ?? 'leave' }}. Cancel it from the Leave tab if this was a mistake.
+                    {{ __('Marked as :type. Cancel it from the Leave tab if this was a mistake.', ['type' => $leaveTypeName ?? __('leave')]) }}
                 </native:text>
             </native:column>
         @elseif ($canMarkLeave)
             <native:column class="w-full gap-3">
-                <native:toggle label="Mark as leave" native:model="markLeave" />
+                <native:toggle label="{{ __('Mark as leave') }}" native:model="markLeave" />
 
                 @if ($markLeave)
                     <native:date-picker
-                        label="Through"
+                        label="{{ __('Through') }}"
                         mode="date"
                         value="{{ $leaveEndDate }}"
                         @change="setLeaveEndDate"
                         min="{{ $workDate }}"
                         :is-error="($fieldErrors['leaveEndDate'] ?? '') !== ''"
-                        :supporting="$fieldErrors['leaveEndDate'] ?? 'Same day, or extend the range.'"
+                        :supporting="$fieldErrors['leaveEndDate'] ?? __('Same day, or extend the range.')"
                     />
                 @endif
             </native:column>
         @endif
 
         <native:outlined-text-input
-            label="Reason (optional)"
+            label="{{ __('Reason (optional)') }}"
             native:model="reason"
             multiline
             :is-error="($fieldErrors['reason'] ?? '') !== ''"
@@ -59,7 +59,7 @@
         />
 
         <native:button
-            label="Save"
+            label="{{ __('Save') }}"
             variant="primary"
             size="lg"
             :loading="$busy"

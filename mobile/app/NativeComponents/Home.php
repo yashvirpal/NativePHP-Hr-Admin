@@ -18,7 +18,7 @@ class Home extends Screen
     public bool $finishedToday = false;
 
     /** "Punched in since 09:02" etc. */
-    public string $todayLine = 'Not punched in';
+    public string $todayLine = '';
 
     public string $todayStatus = '';
 
@@ -36,7 +36,7 @@ class Home extends Screen
 
     public function navTitle(): string
     {
-        return 'Home';
+        return __('Home');
     }
 
     public function activeTab(): ?string
@@ -79,9 +79,12 @@ class Home extends Screen
         $this->finishedToday = ! $this->punchedIn && ($today['last_out_at'] ?? null) !== null;
         $this->todayStatus = Format::status($today['status'] ?? null);
         $this->todayLine = match (true) {
-            $this->punchedIn => 'Punched in since '.Format::time($today['first_in_at'] ?? null),
-            $this->finishedToday => 'Last out at '.Format::time($today['last_out_at']).' - '.Format::minutes($today['worked_minutes'] ?? 0).' worked',
-            default => 'Not punched in',
+            $this->punchedIn => __('Punched in since :time', ['time' => Format::time($today['first_in_at'] ?? null)]),
+            $this->finishedToday => __('Last out at :time - :duration worked', [
+                'time' => Format::time($today['last_out_at']),
+                'duration' => Format::minutes($today['worked_minutes'] ?? 0),
+            ]),
+            default => __('Not punched in'),
         };
 
         $month = $data['month'] ?? [];

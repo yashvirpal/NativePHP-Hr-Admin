@@ -2,6 +2,8 @@
 
 namespace App\NativeComponents;
 
+use App\Services\LocalePreference;
+use Illuminate\Support\Facades\App;
 use Illuminate\View\View;
 
 /** Profile summary plus the screens that don't have their own tab. */
@@ -14,9 +16,12 @@ class More extends Screen
     /** @var list<array{label: string, value: string}> */
     public array $details = [];
 
+    /** 'en' | 'hi' - which option is highlighted, and the language every screen renders in. */
+    public string $locale = LocalePreference::DEFAULT;
+
     public function navTitle(): string
     {
-        return 'More';
+        return __('More');
     }
 
     public function activeTab(): ?string
@@ -26,6 +31,8 @@ class More extends Screen
 
     public function mount(): void
     {
+        $this->locale = app(LocalePreference::class)->get();
+
         $me = $this->call(fn ($api) => $api->me());
 
         if ($me === null) {
@@ -37,13 +44,13 @@ class More extends Screen
         $this->name = (string) ($me['name'] ?? '');
         $this->email = (string) ($me['email'] ?? '');
         $this->details = collect([
-            ['Employee code', $employee['employee_code'] ?? null],
-            ['Designation', $employee['designation'] ?? null],
-            ['Department', $employee['department']['name'] ?? null],
-            ['Shift', isset($employee['shift'])
+            [__('Employee code'), $employee['employee_code'] ?? null],
+            [__('Designation'), $employee['designation'] ?? null],
+            [__('Department'), $employee['department']['name'] ?? null],
+            [__('Shift'), isset($employee['shift'])
                 ? $employee['shift']['name'].' ('.substr($employee['shift']['start_time'], 0, 5).' - '.substr($employee['shift']['end_time'], 0, 5).')'
                 : null],
-            ['Phone', $employee['phone'] ?? null],
+            [__('Phone'), $employee['phone'] ?? null],
         ])->filter(fn ($row) => filled($row[1]))
             ->map(fn ($row) => ['label' => $row[0], 'value' => (string) $row[1]])
             ->values()->all();
@@ -62,6 +69,17 @@ class More extends Screen
     public function companies(): void
     {
         $this->navigate('/companies');
+    }
+
+    public function setLanguage(string $locale): void
+    {
+        if (! in_array($locale, ['en', 'hi'], true)) {
+            return;
+        }
+
+        $this->locale = $locale;
+        app(LocalePreference::class)->put($locale);
+        App::setLocale($locale);
     }
 
     public function signOut(): void

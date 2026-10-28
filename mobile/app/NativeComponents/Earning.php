@@ -36,7 +36,7 @@ class Earning extends Screen
 
     public function navTitle(): string
     {
-        return 'Earning';
+        return __('Earning');
     }
 
     public function mount(): void
@@ -121,14 +121,14 @@ class Earning extends Screen
 
         if ($from === '' || $to === '') {
             $this->error = '';
-            $this->fieldErrors = ['customFrom' => 'Enter both a start and end date.'];
+            $this->fieldErrors = ['customFrom' => __('Enter both a start and end date.')];
 
             return;
         }
 
         if ($from > $to) {
             $this->error = '';
-            $this->fieldErrors = ['customFrom' => 'The start date must be before the end date.'];
+            $this->fieldErrors = ['customFrom' => __('The start date must be before the end date.')];
 
             return;
         }

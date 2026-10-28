@@ -27,7 +27,7 @@ class Overtime extends Screen
 
     public function navTitle(): string
     {
-        return 'Overtime';
+        return __('Overtime');
     }
 
     public function activeTab(): ?string
