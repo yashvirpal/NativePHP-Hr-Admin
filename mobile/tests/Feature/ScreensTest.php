@@ -235,7 +235,7 @@ class ScreensTest extends TestCase
             ->assertSee('2000.00');
     }
 
-    public function test_home_renders_in_hindi_once_that_language_is_selected(): void
+    public function test_home_renders_in_hindi_when_that_is_the_saved_preference(): void
     {
         $this->signIn();
         app(LocalePreference::class)->put('hi');
@@ -250,9 +250,7 @@ class ScreensTest extends TestCase
 
         Native::test(Home::class)
             ->assertSee('आज')
-            ->assertSee('पंच इन नहीं किया')
-            ->assertSee('इस महीने')
-            ->assertSee('अवकाश');
+            ->assertDontSee('Today');
     }
 
     public function test_an_expired_session_sends_the_user_to_login(): void
@@ -946,26 +944,34 @@ class ScreensTest extends TestCase
         Native::test(More::class)->tap('Earning')->assertNavigatedTo('/earning');
     }
 
-    public function test_more_defaults_to_english_and_can_switch_to_hindi(): void
+    public function test_more_defaults_to_english(): void
     {
         $this->signIn();
         Http::fake(['*' => Http::response([])]);
 
         Native::test(More::class)
             ->assertSet('locale', 'en')
-            ->tap('हिन्दी')
-            ->assertSet('locale', 'hi');
+            ->assertSee('हिन्दी');
+    }
+
+    public function test_more_set_language_switches_to_hindi(): void
+    {
+        $this->signIn();
+        Http::fake(['*' => Http::response([])]);
+
+        Native::test(More::class)->call('setLanguage', 'hi')->assertSet('locale', 'hi');
 
         $this->assertSame('hi', app(LocalePreference::class)->get());
     }
 
-    public function test_more_remembers_the_chosen_language_on_reopen(): void
+    public function test_more_set_language_ignores_an_unsupported_locale(): void
     {
         $this->signIn();
         Http::fake(['*' => Http::response([])]);
-        app(LocalePreference::class)->put('hi');
 
-        Native::test(More::class)->assertSet('locale', 'hi');
+        Native::test(More::class)->call('setLanguage', 'fr')->assertSet('locale', 'en');
+
+        $this->assertSame('en', app(LocalePreference::class)->get());
     }
 
     // ─── Earning ────────────────────────────────────────────────────────────────

@@ -16,7 +16,10 @@ class More extends Screen
     /** @var list<array{label: string, value: string}> */
     public array $details = [];
 
-    /** 'en' | 'hi' - which option is highlighted, and the language every screen renders in. */
+    /**
+     * Which option is highlighted, and the language every screen renders in. See the comment on
+     * LocalePreference - Hindi is temporarily back on to test it on Android.
+     */
     public string $locale = LocalePreference::DEFAULT;
 
     public function navTitle(): string
@@ -73,7 +76,7 @@ class More extends Screen
 
     public function setLanguage(string $locale): void
     {
-        if (! in_array($locale, ['en', 'hi'], true)) {
+        if (! in_array($locale, LocalePreference::SUPPORTED, true)) {
             return;
         }
 

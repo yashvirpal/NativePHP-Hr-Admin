@@ -1,7 +1,6 @@
 @php
-    $languageVariant = fn (string $key) => $locale === $key ? 'primary' : 'ghost';
+    $languageVariant = fn (string $code) => $code === $locale ? 'primary' : 'secondary';
 @endphp
-
 <native:scroll-view class="w-full h-full bg-theme-background">
     <native:column class="w-full p-4 gap-6">
         @if ($error !== '')
@@ -31,8 +30,8 @@
             <native:column class="w-full p-4 gap-3 rounded-2xl bg-theme-surface-variant/40">
                 <native:text class="text-sm text-theme-on-surface-variant">{{ __('Language') }}</native:text>
                 <native:row class="w-full gap-2">
-                    <native:button class="flex-1" label="English" variant="{{ $languageVariant('en') }}" size="sm" @press="setLanguage('en')" />
-                    <native:button class="flex-1" label="हिन्दी" variant="{{ $languageVariant('hi') }}" size="sm" @press="setLanguage('hi')" />
+                    <native:button label="English" variant="{{ $languageVariant('en') }}" class="flex-1" @press="setLanguage('en')" />
+                    <native:button label="हिन्दी" variant="{{ $languageVariant('hi') }}" class="flex-1" @press="setLanguage('hi')" />
                 </native:row>
             </native:column>
         </native:column>
